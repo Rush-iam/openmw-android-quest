@@ -179,22 +179,5 @@ popd
 
 echo "==> Installing shared libraries"
 
-rm -rf ../app/wrap/
-rm -rf ../app/src/main/jniLibs/$ABI/
-mkdir -p ../app/src/main/jniLibs/$ABI/
-
-# libopenmw.so is a special case
-find build/$ARCH/openmw-prefix/ -iname "libopenmw.so" -exec cp "{}" ../app/src/main/jniLibs/$ABI/libopenmw.so \;
-
-# copy delta_plugin to lib location
-cp tool/libdelta_plugin.so ../app/src/main/jniLibs/$ABI/
-
-# copy over libs we compiled
-cp prefix/$ARCH/lib/{libopenal,libSDL2,libng_gl4es,libspirv-cross-c-shared,libcollada-dom2.5-dp}.so ../app/src/main/jniLibs/$ABI/
-
-# copy over libc++_shared
-find ./toolchain/$ARCH/sysroot/usr/lib/$NDK_TRIPLET -iname "libc++_shared.so" -exec cp "{}" ../app/src/main/jniLibs/$ABI/ \;
-
-
 
 echo "==> Success"
