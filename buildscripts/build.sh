@@ -217,27 +217,6 @@ if [[ $DEPLOY_RESOURCES = "true" ]]; then
 	cp "$DIR/../3rdparty-licenses.txt" "$DST"
 fi
 
-echo "==> Making your debugging life easier"
 
-# copy unstripped libs to aid debugging
-rm -rf "./symbols/$ABI/" && mkdir -p "./symbols/$ABI/"
-cp "./build/$ARCH/openal-prefix/src/openal-build/libopenal.so" "./symbols/$ABI/"
-#cp "./build/$ARCH/sdl2-prefix/src/sdl2-build/libSDL2.so" "./symbols/$ABI/"
-cp "./build/$ARCH/openmw-prefix/src/openmw-build/libopenmw.so" "./symbols/$ABI/libopenmw.so"
-#cp "./build/$ARCH/gl4es-prefix/src/gl4es-build/obj/local/$ABI/libGL.so" "./symbols/$ABI/"
-cp "../app/src/main/jniLibs/$ABI/libc++_shared.so" "./symbols/$ABI/"
-
-if [ $ASAN = true ]; then
-	cp ./toolchain/$ARCH/lib64/clang/*/lib/linux/libclang_rt.asan-$ASAN_ARCH-android.so "./symbols/$ABI/"
-	cp ./toolchain/$ARCH/lib64/clang/*/lib/linux/libclang_rt.asan-$ASAN_ARCH-android.so "../app/src/main/jniLibs/$ABI/"
-	mkdir -p ../app/wrap/res/lib/$ABI/
-	sed "s/@ASAN_ARCH@/$ASAN_ARCH/g" < include/asan-wrapper.sh > "../app/wrap/res/lib/$ABI/wrap.sh"
-	chmod +x "../app/wrap/res/lib/$ABI/wrap.sh"
-fi
-
-#PATH="$DIR/toolchain/ndk/prebuilt/linux-x86_64/bin/:$DIR/toolchain/$ARCH/$NDK_TRIPLET/bin/:$PATH" ./include/gdb-add-index ./symbols/$ABI/*.so
-
-# gradle should do it, but just in case...
-llvm-strip ../app/src/main/jniLibs/$ABI/*.so
 
 echo "==> Success"
