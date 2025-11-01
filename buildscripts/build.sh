@@ -195,28 +195,6 @@ cp prefix/$ARCH/lib/{libopenal,libSDL2,libng_gl4es,libspirv-cross-c-shared,libco
 # copy over libc++_shared
 find ./toolchain/$ARCH/sysroot/usr/lib/$NDK_TRIPLET -iname "libc++_shared.so" -exec cp "{}" ../app/src/main/jniLibs/$ABI/ \;
 
-if [[ $DEPLOY_RESOURCES = "true" ]]; then
-	echo "==> Deploying resources"
-
-	DST=$DIR/../app/src/main/assets/libopenmw/
-	SRC=build/$ARCH/openmw-prefix/src/openmw-build/
-
-	rm -rf "$DST" && mkdir -p "$DST"
-
-	# resources
-	cp -r "$SRC/resources" "$DST"
-
-	# global config
-	mkdir -p "$DST/openmw/"
-	cp "$SRC/defaults.bin" "$DST/openmw/"
-	cp "$SRC/gamecontrollerdb.txt" "$DST/openmw/"
-	cat "$SRC/openmw.cfg" | grep -v "data=" | grep -v "data-local=" >> "$DST/openmw/openmw.base.cfg"
-	cat "$DIR/../app/openmw.base.cfg" >> "$DST/openmw/openmw.base.cfg"
-
-	# licensing info
-	cp "$DIR/../3rdparty-licenses.txt" "$DST"
-fi
-
 
 
 echo "==> Success"
