@@ -7,6 +7,9 @@ plugins {
 
 ext {
     versionFile = new File(project.rootDir, 'app/src/main/assets/libopenmw/resources/version')
+    calculateVersionCode = {
+        return (new Date().getTime() / 1000).intValue()
+    }
     calculateVersion = {
         stream = new FileInputStream(versionFile)
         return stream.readLines()[0].trim() + "-" + project.android.defaultConfig.versionCode.toString()
@@ -29,7 +32,7 @@ android {
 
     defaultConfig {
         applicationId "com.queststoredb.openmw"
-        versionCode 51
+        versionCode calculateVersionCode()
         versionName calculateVersion()
 
         minSdkVersion 21
