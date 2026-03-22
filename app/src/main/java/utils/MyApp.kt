@@ -44,8 +44,7 @@ class MyApp : Application() {
             val prefs = PreferenceManager.getDefaultSharedPreferences(this)
             if (prefs.getString("bugsnag_consent", "false")!! == "true") {
                 val config = Configuration(BugsnagApiKey.API_KEY)
-                config.buildUUID = ""
-                Bugsnag.init(this, config)
+                Bugsnag.start(this, config)
                 reportCrashes = true
             }
         }

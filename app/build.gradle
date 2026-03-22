@@ -1,7 +1,9 @@
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
-apply plugin: 'com.bugsnag.android.gradle'
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'kotlin-android-extensions'
+    id 'com.bugsnag.android.gradle'
+}
 
 ext {
     versionFile = new File(project.rootDir, 'app/src/main/assets/libopenmw/resources/version')
@@ -101,7 +103,7 @@ dependencies {
     implementation files('lib/sqlite-base-0.10.8.aar')
     implementation files('lib/anko-sqlite-0.10.8.aar')
 
-    implementation 'com.bugsnag:bugsnag-android-ndk:4.+'
+    implementation 'com.bugsnag:bugsnag-android-ndk:5.+'
 
     testImplementation 'junit:junit:4.13.2'
 }
