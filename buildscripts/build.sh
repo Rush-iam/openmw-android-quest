@@ -4,7 +4,7 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
-export ARCH="arm"
+export ARCH="arm64"
 export CCACHE="false"
 ASAN="false"
 DEPLOY_RESOURCES="true"
@@ -18,7 +18,7 @@ LDFLAGS="-Wl,--undefined-version"
 usage() {
 	echo "Usage: ./build.sh [--help] [--asan] [--arch arch] [--debug|--release]"
 	echo "	--help: print this message"
-	echo "	--arch: build for specified architecture [arm, arm64, x86_64, x86] (default: arm)"
+	echo "	--arch: build for specified architecture [arm, arm64, x86_64, x86] (default: arm64)"
 	echo "	--asan: build with AddressSanitizer enabled"
 	echo "	--no-resources: don't deploy the resources (used in full-build.sh)"
 	echo "	--lto: use LTO for linking"
