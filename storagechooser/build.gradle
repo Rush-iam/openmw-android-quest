@@ -18,6 +18,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    namespace 'com.codekidlabs.storagechooser'
 
     android.defaultConfig.vectorDrawables.useSupportLibrary = true
 }
@@ -43,7 +44,7 @@ task javadoc(type: Javadoc) {
 
 // build a jar with javadoc
 task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
+    archiveClassifier = 'javadoc'
     from javadoc.destinationDir
 }
 
