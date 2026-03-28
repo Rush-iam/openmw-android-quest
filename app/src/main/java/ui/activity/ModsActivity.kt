@@ -28,7 +28,6 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import file.GameInstaller
-import kotlinx.android.synthetic.main.activity_mods.*
 import mods.*
 import android.view.MenuItem
 import java.io.File
@@ -57,6 +56,7 @@ import android.widget.SeekBar
 import android.widget.ListView
 import android.widget.ArrayAdapter
 import android.view.WindowManager
+import com.libopenmw.openmw.databinding.ActivityModsBinding
 
 import kotlinx.coroutines.*
 
@@ -79,6 +79,7 @@ class ModsActivity : AppCompatActivity() {
 
 var skippedTextures = mutableSetOf<String>()
 var WorkingDir = ""
+    private lateinit var binding: ActivityModsBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,16 +91,18 @@ var WorkingDir = ""
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         // Switch tabs between plugins/resources
-        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+        binding = ActivityModsBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
 
                 // Reload mod list when moving from data dir tab
-                if(flipper.displayedChild == 2) {
+                if(binding.flipper.displayedChild == 2) {
                     saveCFG()
                     updateModList()
                 }
 
-                flipper.displayedChild = tab.position
+                binding.flipper.displayedChild = tab.position
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab) {

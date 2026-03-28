@@ -1,7 +1,6 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
-    id 'kotlin-android-extensions'
     id 'com.bugsnag.android.gradle'
 }
 
@@ -17,7 +16,7 @@ ext {
 }
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 30
 
     sourceSets {
         main {
@@ -50,8 +49,11 @@ android {
     }
 
     compileOptions {
-        targetCompatibility 1.8
-        sourceCompatibility 1.8
+        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
     }
 
     buildTypes {
@@ -75,7 +77,10 @@ android {
         }
     }
 
-    buildFeatures { buildConfig = true }
+    buildFeatures {
+        buildConfig = true
+        viewBinding true
+    }
     productFlavors {
         create("mobile") { dimension = "device" }
         create("quest") { dimension = "device" }

@@ -28,7 +28,6 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import file.GameInstaller
-import kotlinx.android.synthetic.main.activity_settings.*
 import android.view.MenuItem
 import java.io.File
 

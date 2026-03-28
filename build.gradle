@@ -1,6 +1,6 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
-    ext.kotlin_version = '1.6.21'
+    ext.kotlin_version = '1.9.22'
     ext.anko_version = '0.10.8'
     repositories {
         google()
@@ -9,7 +9,6 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:8.7.3'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath 'com.bugsnag:bugsnag-android-gradle-plugin:7.+'
         classpath 'com.bugsnag:bugsnag-android-gradle-plugin:8.+'
     }
 }
