@@ -31,7 +31,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.queststoredb.openmw"
+        applicationId "com.queststoredb.openmw_quest"
         versionCode calculateVersionCode()
         versionName calculateVersion()
 
@@ -65,14 +65,20 @@ android {
         }
     }
 
-    flavorDimensions "version"
+    flavorDimensions "version", "device"
 
     productFlavors {
         nightly {
             dimension "version"
-            applicationId "com.queststoredb.openmw"
+            applicationId "com.queststoredb.openmw_quest"
             versionNameSuffix "-nightly"
         }
+    }
+
+    buildFeatures { buildConfig = true }
+    productFlavors {
+        create("mobile") { dimension = "device" }
+        create("quest") { dimension = "device" }
     }
 
     applicationVariants.all { variant ->
