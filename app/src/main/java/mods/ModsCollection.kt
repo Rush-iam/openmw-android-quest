@@ -52,7 +52,7 @@ class ModsCollection(private val type: ModType,
         blacklist.add("output_groundcover.omwaddon")
 
         // Figure current maximum order, new mods will be pushed below it
-        var maxOrder = mods.maxBy { it.order }?.order ?: 0
+        var maxOrder = mods.maxByOrNull { it.order }?.order ?: 0
 
         // Add all mods from openmw.cfg that exists on filesystem in its order
         modList.forEach {
