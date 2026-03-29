@@ -2,6 +2,7 @@ plugins {
     id 'com.android.application'
     id 'kotlin-android'
     id 'com.bugsnag.android.gradle'
+    id 'com.meta.spatial.plugin'
 }
 
 ext {
@@ -49,11 +50,11 @@ android {
     }
 
     compileOptions {
-        targetCompatibility JavaVersion.VERSION_17
-        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_21
+        sourceCompatibility JavaVersion.VERSION_21
     }
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "21"
     }
 
     buildTypes {
@@ -117,7 +118,7 @@ dependencies {
     implementation files('lib/sqlite-base-0.10.8.aar')
     implementation files('lib/anko-sqlite-0.10.8.aar')
 
-    implementation 'com.bugsnag:bugsnag-android-ndk:5.+'
+    implementation 'com.bugsnag:bugsnag-android-ndk:5.32.4'
 
     testImplementation 'junit:junit:4.13.2'
 }
