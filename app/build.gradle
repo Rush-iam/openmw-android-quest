@@ -18,6 +18,13 @@ ext {
 
 android {
     compileSdkVersion 30
+    compileOptions {
+        targetCompatibility JavaVersion.VERSION_21
+        sourceCompatibility JavaVersion.VERSION_21
+    }
+    kotlinOptions {
+        jvmTarget = "21"
+    }
 
     sourceSets {
         main {
@@ -47,14 +54,6 @@ android {
 
     lintOptions {
         checkReleaseBuilds false
-    }
-
-    compileOptions {
-        targetCompatibility JavaVersion.VERSION_21
-        sourceCompatibility JavaVersion.VERSION_21
-    }
-    kotlinOptions {
-        jvmTarget = "21"
     }
 
     buildTypes {
