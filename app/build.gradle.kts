@@ -132,8 +132,21 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
 
     implementation("com.meta.spatial:meta-spatial-sdk:$metaSpatialSdkVersion")
+    implementation ("com.meta.spatial:meta-spatial-sdk-vr:${metaSpatialSdkVersion}")
     implementation("com.meta.spatial:meta-spatial-sdk-toolkit:$metaSpatialSdkVersion")
-    implementation("com.meta.spatial:meta-spatial-sdk-vr:$metaSpatialSdkVersion")
-    implementation("com.meta.spatial:meta-spatial-sdk-physics:$metaSpatialSdkVersion")
     ksp("com.meta.spatial.plugin:com.meta.spatial.plugin.gradle.plugin:$metaSpatialSdkVersion")
+}
+
+val projectDir = layout.projectDirectory
+val sceneDirectory = projectDir.dir("quest_spatial")
+spatial {
+    allowUsageDataCollection = false
+    scenes {
+        exportItems {
+            item {
+                projectPath.set(sceneDirectory.file("Main.metaspatial"))
+                outputPath.set(projectDir.dir("src/quest/assets/scenes"))
+            }
+        }
+    }
 }
