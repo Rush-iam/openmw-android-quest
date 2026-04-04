@@ -128,7 +128,7 @@ class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener 
         val inst = GameInstaller(path)
         if (inst.check()) {
             inst.setNomedia()
-            if (!inst.convertIni(sharedPref.getString("pref_encoding", GameInstaller.DEFAULT_CHARSET_PREF)!!)) {
+            if (!inst.convertIni(sharedPref.getString("pref_encoding", R.string.pref_encoding_default.toString())!!)) {
                 showError(R.string.data_error_title, R.string.ini_error_message)
             } else {
                 gameFiles = path

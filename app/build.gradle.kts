@@ -88,6 +88,7 @@ android {
         }
         create("quest") {
             dimension = "device"
+            isDefault = true
         }
     }
 
@@ -114,6 +115,7 @@ android {
 val metaSpatialSdkVersion = "0.10.1"
 dependencies {
     implementation("androidx.appcompat:appcompat:1.3.1")
+    implementation("androidx.preference:preference:1.1.1")
     implementation("com.google.android.material:material:1.4.0")
     implementation("androidx.recyclerview:recyclerview:1.2.1")
 

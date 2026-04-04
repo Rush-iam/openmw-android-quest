@@ -24,7 +24,7 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Process
 import android.os.Build.VERSION
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import android.system.ErrnoException
 import android.system.Os
 import android.util.Log

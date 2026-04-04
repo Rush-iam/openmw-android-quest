@@ -20,7 +20,8 @@
 package file
 
 import android.content.Context
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
+import com.libopenmw.openmw.R
 import constants.Constants
 import java.io.File
 import java.io.IOException
@@ -116,7 +117,6 @@ class GameInstaller(path: String) {
     companion object {
         const val INI_NAME = "Morrowind.ini"
         const val DATA_NAME = "Data Files"
-        const val DEFAULT_CHARSET_PREF = "win1252"
 
         /**
          * Returns path of Data Files, making use of path to the game from the settings

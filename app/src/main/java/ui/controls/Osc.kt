@@ -23,7 +23,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
-import android.preference.PreferenceManager
 import android.view.KeyEvent
 import android.view.KeyCharacterMap
 import android.view.MotionEvent
@@ -31,6 +30,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.RelativeLayout
+import androidx.preference.PreferenceManager
 import com.libopenmw.openmw.R
 import org.jetbrains.anko.defaultSharedPreferences
 import org.libsdl.app.SDLActivity

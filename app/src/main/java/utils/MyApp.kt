@@ -3,9 +3,9 @@ package utils
 import android.app.Application
 import android.content.pm.PackageManager
 import android.os.Environment
-import android.preference.PreferenceManager
 import android.util.Base64
 import android.util.Log
+import androidx.preference.PreferenceManager
 import com.bugsnag.android.Bugsnag
 import com.bugsnag.android.Configuration
 import com.libopenmw.openmw.BuildConfig

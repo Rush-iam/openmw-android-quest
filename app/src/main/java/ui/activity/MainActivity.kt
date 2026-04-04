@@ -21,59 +21,50 @@
 package ui.activity
 
 import android.annotation.SuppressLint
-import android.app.AlarmManager
 import android.app.AlertDialog
-import android.app.PendingIntent
 import android.app.ProgressDialog
-import android.content.*
+import android.content.ActivityNotFoundException
+import android.content.DialogInterface
+import android.content.Intent
+import android.content.SharedPreferences
+import android.content.res.Configuration
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
-import android.os.Build.VERSION
-import android.preference.PreferenceManager
-import android.system.ErrnoException
 import android.system.Os
 import android.util.DisplayMetrics
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
-import com.bugsnag.android.Bugsnag
-
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.preference.PreferenceManager
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.libopenmw.openmw.BuildConfig
 import com.libopenmw.openmw.R
 import constants.Constants
 import file.GameInstaller
-
-import java.io.BufferedReader
-import java.io.File
-import java.io.FileInputStream
-import java.io.IOException
-import java.io.InputStreamReader
-
 import file.utils.CopyFilesFromAssets
-import mods.ModType
-import mods.ModsCollection
-import ui.fragments.FragmentSettings
+import org.xmlpull.v1.XmlPullParser
 import permission.PermissionHelper
+import ui.fragments.FragmentSettings
 import utils.MyApp
 import utils.Utils.hideAndroidControls
-import java.util.*
-
-import android.util.Base64
-
-import android.view.DisplayCutout
-import android.graphics.Rect
-
-import android.content.res.Configuration
-
-import android.os.Build
+import java.io.File
 import java.io.FileWriter
+import java.io.IOException
 import java.io.PrintWriter
 import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.io.bufferedReader
+import kotlin.io.copyRecursively
+import kotlin.io.readText
+import kotlin.io.useLines
+import kotlin.io.writeText
 import kotlin.system.exitProcess
+import kotlin.use
 
 class MainActivity : AppCompatActivity() {
     private lateinit var prefs: SharedPreferences
@@ -87,6 +78,7 @@ class MainActivity : AppCompatActivity() {
         PermissionHelper.getWriteExternalStoragePermission(this@MainActivity)
         setContentView(R.layout.main)
         prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        populatePreferenceDefaults()
 
         val theme = prefs.getInt(getString(R.string.theme), 0)
         if(theme == 0) AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
@@ -126,6 +118,58 @@ class MainActivity : AppCompatActivity() {
             File(Constants.USER_FILE_STORAGE + "/launcher/icons/paste custom icons here.txt").writeText(
 "attack.png \ninventory.png \njournal.png \njump.png \nkeyboard.png \nmouse.png \npause.png \npointer_arrow.png \nrun.png \nsave.png \nsneak.png \nthird_person.png \ntoggle_magic.png \ntoggle_weapon.png \ntoggle.png \nuse.png \nwait.png \nscroll_wheel.png \npostprocessing.png \nstats.png")
 
+    }
+
+    /**
+     * Apply defaults without overwriting user's existing settings
+     */
+    private fun populatePreferenceDefaults() {
+        val androidNs = "http://schemas.android.com/apk/res/android"
+        for (field in R.xml::class.java.fields) {
+            if (!field.name.startsWith("gs_") && field.name != "settings")
+                continue
+            try {
+                this.resources.getXml(field.getInt(null)).use { parser ->
+                    var eventType = parser.eventType
+                    val editor = prefs.edit()
+                    var changed = false
+
+                    while (eventType != XmlPullParser.END_DOCUMENT) {
+                        if (eventType == XmlPullParser.START_TAG) {
+                            val key = parser.getAttributeValue(androidNs, "key")
+
+                            if (key != null && !prefs.contains(key)) {
+                                val resId = parser.getAttributeResourceValue(androidNs, "defaultValue", 0)
+                                val rawValue = parser.getAttributeValue(androidNs, "defaultValue")
+                                if (resId != 0 || rawValue != null) {
+                                    when (parser.name) {
+                                        "SwitchPreferenceCompat",
+                                        "SwitchPreference",
+                                        "CheckBoxPreference" -> {
+                                            val value = if (resId != 0) resources.getBoolean(resId) else rawValue.toBoolean()
+                                            editor.putBoolean(key, value)
+                                        }
+                                        "SeekBarPreference" -> {
+                                            val value = if (resId != 0) resources.getInteger(resId) else rawValue?.toInt() ?: 0
+                                            editor.putInt(key, value)
+                                        }
+                                        else -> {
+                                            val value = if (resId != 0) resources.getString(resId) else rawValue
+                                            editor.putString(key, value)
+                                        }
+                                    }
+                                    changed = true
+                                }
+                            }
+                        }
+                        eventType = parser.next()
+                    }
+                    if (changed) editor.apply()
+                }
+            } catch (e: Exception) {
+                Log.e("Settings", "Could not populate defaults for ${field.name}", e)
+            }
+        }
     }
 
     /**
@@ -386,7 +430,10 @@ class MainActivity : AppCompatActivity() {
         File(Constants.DEFAULTS_BIN).writeText(encoded)
     }
 
-    private fun writeSetting(category: String, name: String, value: String) {
+    private fun writeSetting(category: String, name: String, value: String?) {
+        if (value == null)
+            throw NullPointerException("Missing value for setting $name")
+
         var lineList = mutableListOf<String>()
         var lineNumber = 0
         var categoryFound = 0
@@ -475,108 +522,106 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-	// Game Mechanics
-	writeSetting("Game", "uncapped damage fatigue", if(prefs.getBoolean("gs_uncapped_damage_fatigue", false)) "true" else "false")
+        // Game Mechanics
+        writeSetting("Game", "uncapped damage fatigue", prefs.getBoolean("gs_uncapped_damage_fatigue", false).toString())
+        writeSetting("Game", "rebalance soul gem values", prefs.getBoolean("gs_soulgem_values_rebalance", false).toString())
+        writeSetting("Game", "followers attack on sight", prefs.getBoolean("gs_followers_defend_immediately", false).toString())
+        writeSetting("Game", "barter disposition change is permanent", prefs.getBoolean("gs_permanent_barter_disposition_changes", false).toString())
+        writeSetting("Game", "NPCs avoid collisions", prefs.getBoolean("gs_npc_avoid_collision", false).toString())
+        writeSetting("Game", "only appropriate ammunition bypasses resistance", prefs.getBoolean("gs_only_weapon_bs", false).toString())
+        writeSetting("Game", "normalise race speed", prefs.getBoolean("gs_racial_variation_in_speed_fix", false).toString())
+        writeSetting("Game", "swim upward correction", prefs.getBoolean("gs_swim_upward_correction", false).toString())
+        writeSetting("Game", "can loot during death animation", prefs.getBoolean("gs_can_loot_during_death_animation", false).toString())
+        writeSetting("Game", "enchanted weapons are magical", prefs.getBoolean("gs_enchanted_weapons_are_magical", false).toString())
+        writeSetting("Game", "classic reflected absorb spells behavior", prefs.getBoolean("gs_classic_reflected_absorb_spells_behavior", false).toString())
+        writeSetting("Game", "always allow stealing from knocked out actors", prefs.getBoolean("gs_always_allow_stealing_from_knocked_out_actors", false).toString())
+        writeSetting("Game", "allow actors to follow over water surface", prefs.getBoolean("gs_always_allow_npc_to_follow_over_water_surface", false).toString())
+        writeSetting("Game", "strength influences hand to hand", prefs.getString("gs_factor_strength_into_hand-to-hand_combat", null))
 
-	writeSetting("Game", "rebalance soul gem values", if(prefs.getBoolean("gs_soulgem_values_rebalance", false)) "true" else "false")
-	writeSetting("Game", "followers attack on sight", if(prefs.getBoolean("gs_followers_defend_immediately", false)) "true" else "false")
-	writeSetting("Game", "barter disposition change is permanent", if(prefs.getBoolean("gs_permanent_barter_disposition_changes", false)) "true" else "false")
-	writeSetting("Game", "NPCs avoid collisions", if(prefs.getBoolean("gs_npc_avoid_collision", false)) "true" else "false")
-	writeSetting("Game", "only appropriate ammunition bypasses resistance", if(prefs.getBoolean("gs_only_weapon_bs", false)) "true" else "false")
-	writeSetting("Game", "normalise race speed", if(prefs.getBoolean("gs_racial_variation_in_speed_fix", false)) "true" else "false")
-	writeSetting("Game", "swim upward correction", if(prefs.getBoolean("gs_swim_upward_correction", false)) "true" else "false")
-	writeSetting("Game", "can loot during death animation", if(prefs.getBoolean("gs_can_loot_during_death_animation", true)) "true" else "false")
-	writeSetting("Game", "enchanted weapons are magical", if(prefs.getBoolean("gs_enchanted_weapons_are_magical", true)) "true" else "false")
-	writeSetting("Game", "classic reflected absorb spells behavior", if(prefs.getBoolean("gs_classic_reflected_absorb_spells_behavior", true)) "true" else "false")
-	writeSetting("Game", "always allow stealing from knocked out actors", if(prefs.getBoolean("gs_always_allow_stealing_from_knocked_out_actors", false)) "true" else "false")
-	writeSetting("Game", "allow actors to follow over water surface", if(prefs.getBoolean("gs_always_allow_npc_to_follow_over_water_surface", true)) "true" else "false")
-	writeSetting("Game", "strength influences hand to hand", prefs.getString("gs_factor_strength_into_hand-to-hand_combat", "0").toString())
+        // Visuals terrain
+        writeSetting("Terrain", "object paging min size", prefs.getString("gs_object_paging_min_size", null))
+        writeSetting("Terrain", "distant terrain", prefs.getBoolean("gs_distant_land", false).toString())
+        writeSetting("Terrain", "object paging active grid", prefs.getBoolean("gs_active_grid_object_paging", false).toString())
 
-	// Visuals terrain
-	writeSetting("Terrain", "object paging min size", prefs.getString("gs_object_paging_min_size", "0.01").toString())
-	writeSetting("Terrain", "distant terrain", if(prefs.getBoolean("gs_distant_land", false)) "true" else "false")
-	writeSetting("Terrain", "object paging active grid", if(prefs.getBoolean("gs_active_grid_object_paging", true)) "true" else "false")
+        // Visuals graphics
+        writeSetting("Video", "framerate limit", prefs.getString("gs_framerate_limit", null))
+        writeSetting("Camera", "reverse z", prefs.getBoolean("gs_reverse_z", false).toString())
 
-	// Visuals graphics
-	writeSetting("Video", "framerate limit", prefs.getString("gs_framerate_limit", "60").toString())
-	writeSetting("Camera", "reverse z", if(prefs.getBoolean("gs_reverse_z", /*true*/false)) "true" else "false")
+        // Visuals shaders
+        writeSetting("Shaders", "auto use object normal maps", prefs.getBoolean("gs_auto_use_object_normal_maps", false).toString())
+        writeSetting("Shaders", "auto use object specular maps", prefs.getBoolean("gs_auto_use_object_specular_maps", false).toString())
+        writeSetting("Shaders", "auto use terrain normal maps", prefs.getBoolean("gs_auto_use_terrain_normal_maps", false).toString())
+        writeSetting("Shaders", "auto use terrain specular maps", prefs.getBoolean("gs_auto_use_terrain_specular_maps", false).toString())
+        writeSetting("Shaders", "apply lighting to environment maps", prefs.getBoolean("gs_bump_map_local_lighting", false).toString())
+        writeSetting("Shaders", "weather particle occlusion", prefs.getBoolean("gs_weather_particle_occlusion", false).toString())
 
-	// Visuals shaders
-	writeSetting("Shaders", "auto use object normal maps", if(prefs.getBoolean("gs_auto_use_object_normal_maps", false)) "true" else "false")
-	writeSetting("Shaders", "auto use object specular maps", if(prefs.getBoolean("gs_auto_use_object_specular_maps", false)) "true" else "false")
-	writeSetting("Shaders", "auto use terrain normal maps", if(prefs.getBoolean("gs_auto_use_terrain_normal_maps", false)) "true" else "false")
-	writeSetting("Shaders", "auto use terrain specular maps", if(prefs.getBoolean("gs_auto_use_terrain_specular_maps", false)) "true" else "false")
-	writeSetting("Shaders", "apply lighting to environment maps", if(prefs.getBoolean("gs_bump_map_local_lighting", false)) "true" else "false")
-	writeSetting("Shaders", "weather particle occlusion", if(prefs.getBoolean("gs_weather_particle_occlusion", false)) "true" else "false")
+        // Visuals fog
+        writeSetting("Fog", "radial fog", prefs.getBoolean("gs_radial_fog", false).toString())
+        writeSetting("Fog", "exponential fog", prefs.getBoolean("gs_exponential_fog", false).toString())
+        writeSetting("Fog", "sky blending", prefs.getBoolean("gs_sky_blending", false).toString())
 
-	// Visuals fog
-	writeSetting("Fog", "radial fog", if(prefs.getBoolean("gs_radial_fog", false)) "true" else "false")
-	writeSetting("Fog", "exponential fog", if(prefs.getBoolean("gs_exponential_fog", false)) "true" else "false")
-	writeSetting("Fog", "sky blending", if(prefs.getBoolean("gs_sky_blending", false)) "true" else "false")
+        // Visuals PostProcessing
+        writeSetting("Shaders", "soft particles", prefs.getBoolean("gs_soft_particles", false).toString())
+        writeSetting("Post Processing", "transparent postpass", prefs.getBoolean("gs_transparent_postpass", false).toString())
 
-	// Visuals PostProcessing
-	writeSetting("Shaders", "soft particles", if(prefs.getBoolean("gs_soft_particles", false)) "true" else "false")
-	writeSetting("Post Processing", "transparent postpass", if(prefs.getBoolean("gs_transparent_postpass", false)) "true" else "false")
-
-	// Visuals Shadows
+        // Visuals Shadows
         if(File(Constants.USER_FILE_STORAGE + "/launcher/extensions.log").exists() &&
-           File(Constants.USER_FILE_STORAGE + "/launcher/extensions.log").readText().contains("GL_EXT_depth_clamp")) {
+            File(Constants.USER_FILE_STORAGE + "/launcher/extensions.log").readText().contains("GL_EXT_depth_clamp")) {
 
             writeSetting("Shadows", "enable shadows",
-            if(prefs.getBoolean("gs_object_shadows", false) || prefs.getBoolean("gs_terrain_shadows", false) ||
-                 prefs.getBoolean("gs_actor_shadows", false) || prefs.getBoolean("gs_player_shadows", false))
-                 "true" else "false")
+                (prefs.getBoolean("gs_object_shadows", false) || prefs.getBoolean("gs_terrain_shadows", false) ||
+                        prefs.getBoolean("gs_actor_shadows", false) || prefs.getBoolean("gs_player_shadows", false)).toString())
 
-	    writeSetting("Shadows", "object shadows", if(prefs.getBoolean("gs_object_shadows", false)) "true" else "false")
-	    writeSetting("Shadows", "terrain shadows", if(prefs.getBoolean("gs_terrain_shadows", false)) "true" else "false")
-	    writeSetting("Shadows", "actor shadows", if(prefs.getBoolean("gs_actor_shadows", false)) "true" else "false")
-	    writeSetting("Shadows", "player shadows", if(prefs.getBoolean("gs_player_shadows", false)) "true" else "false")
-	    writeSetting("Shadows", "indoor shadows", if(prefs.getBoolean("gs_indoor_shadows", true)) "true" else "false")
-	    writeSetting("Shadows", "shadow map resolution", prefs.getString("gs_shadow_map_resolution", "1024").toString())
-	    writeSetting("Shadows", "compute scene bounds", prefs.getString("gs_shadow_computation_method", "bounds").toString())
-	    writeSetting("Shadows", "maximum shadow map distance", prefs.getString("gs_shadows_distance", "8192").toString())
-	    writeSetting("Shadows", "shadow fade start", prefs.getString("gs_shadows_fade_start", "0.9").toString())
-	    writeSetting("Shadows", "percentage closer filtering", prefs.getString("gs_shadows_pcf", "0").toString())
+            writeSetting("Shadows", "object shadows", prefs.getBoolean("gs_object_shadows", false).toString())
+            writeSetting("Shadows", "terrain shadows", prefs.getBoolean("gs_terrain_shadows", false).toString())
+            writeSetting("Shadows", "actor shadows", prefs.getBoolean("gs_actor_shadows", false).toString())
+            writeSetting("Shadows", "player shadows", prefs.getBoolean("gs_player_shadows", false).toString())
+            writeSetting("Shadows", "indoor shadows", prefs.getBoolean("gs_indoor_shadows", false).toString())
+            writeSetting("Shadows", "shadow map resolution", prefs.getString("gs_shadow_map_resolution", null))
+            writeSetting("Shadows", "compute scene bounds", prefs.getString("gs_shadow_computation_method", null))
+            writeSetting("Shadows", "maximum shadow map distance", prefs.getString("gs_shadows_distance", null))
+            writeSetting("Shadows", "shadow fade start", prefs.getString("gs_shadows_fade_start", null))
+            writeSetting("Shadows", "percentage closer filtering", prefs.getString("gs_shadows_pcf", null))
         }
 
-	// Animations
-	writeSetting("Game", "player movement ignores animation", if(prefs.getBoolean("gs_player_movement_ignores_animation", false)) "true" else "false")
-	writeSetting("Game", "use magic item animations", if(prefs.getBoolean("gs_use_magic_item_animation", false)) "true" else "false")
-	writeSetting("Game", "use additional anim sources", if(prefs.getBoolean("gs_use_additional_animation_sources", false)) "true" else "false")
-	writeSetting("Game", "weapon sheathing", if(prefs.getBoolean("gs_weapon_sheating", false)) "true" else "false")
-	writeSetting("Game", "shield sheathing", if(prefs.getBoolean("gs_shield_sheating", false)) "true" else "false")
-	writeSetting("Game", "graphic herbalism", if(prefs.getBoolean("gs_enable_graphics_herbalism", true)) "true" else "false")
-	writeSetting("Game", "smooth movement", if(prefs.getBoolean("gs_smooth_movement", false)) "true" else "false")
-	writeSetting("Game", "turn to movement direction", if(prefs.getBoolean("gs_turn_to_movement_direction", false)) "true" else "false")
-	writeSetting("Game", "smooth animation transitions", if(prefs.getBoolean("gs_smooth_animation_transitions", false)) "true" else "false")
+        // Animations
+        writeSetting("Game", "player movement ignores animation", prefs.getBoolean("gs_player_movement_ignores_animation", false).toString())
+        writeSetting("Game", "use magic item animations", prefs.getBoolean("gs_use_magic_item_animation", false).toString())
+        writeSetting("Game", "use additional anim sources", prefs.getBoolean("gs_use_additional_animation_sources", false).toString())
+        writeSetting("Game", "weapon sheathing", prefs.getBoolean("gs_weapon_sheating", false).toString())
+        writeSetting("Game", "shield sheathing", prefs.getBoolean("gs_shield_sheating", false).toString())
+        writeSetting("Game", "graphic herbalism", prefs.getBoolean("gs_enable_graphics_herbalism", false).toString())
+        writeSetting("Game", "smooth movement", prefs.getBoolean("gs_smooth_movement", false).toString())
+        writeSetting("Game", "turn to movement direction", prefs.getBoolean("gs_turn_to_movement_direction", false).toString())
+        writeSetting("Game", "smooth animation transitions", prefs.getBoolean("gs_smooth_animation_transitions", false).toString())
 
-	// Interface
-	writeSetting("GUI", "controller menus", if(prefs.getBoolean("gs_controller_menus", false)) "true" else "false")
-	writeSetting("GUI", "controller tooltips", if(prefs.getBoolean("gs_controller_tooltips", false)) "true" else "false")
-	writeSetting("Game", "show owned", prefs.getString("gs_show_owned", "0").toString())
-	writeSetting("Game", "show effect duration", if(prefs.getBoolean("gs_show_effect_duration", false)) "true" else "false")
-	writeSetting("Game", "show enchant chance", if(prefs.getBoolean("gs_show_enchant_chance", false)) "true" else "false")
-	writeSetting("Game", "show melee info", if(prefs.getBoolean("gs_show_melee_info", false)) "true" else "false")
-	writeSetting("Game", "show projectile damage", if(prefs.getBoolean("gs_show_projectile_damage", false)) "true" else "false")
-	writeSetting("GUI", "color topic enable", if(prefs.getBoolean("gs_change_dialogue_topic_color", false)) "true" else "false")
-	writeSetting("GUI", "stretch menu background", if(prefs.getBoolean("gs_stretch_menu_background", false)) "true" else "false")
-	writeSetting("Map", "allow zooming", if(prefs.getBoolean("gs_can_zoom_on_maps", false)) "true" else "false")
+        // Interface
+        writeSetting("GUI", "controller menus", prefs.getBoolean("gs_controller_menus", false).toString())
+        writeSetting("GUI", "controller tooltips", prefs.getBoolean("gs_controller_tooltips", false).toString())
+        writeSetting("Game", "show owned", prefs.getString("gs_show_owned", null))
+        writeSetting("Game", "show effect duration", prefs.getBoolean("gs_show_effect_duration", false).toString())
+        writeSetting("Game", "show enchant chance", prefs.getBoolean("gs_show_enchant_chance", false).toString())
+        writeSetting("Game", "show melee info", prefs.getBoolean("gs_show_melee_info", false).toString())
+        writeSetting("Game", "show projectile damage", prefs.getBoolean("gs_show_projectile_damage", false).toString())
+        writeSetting("GUI", "color topic enable", prefs.getBoolean("gs_change_dialogue_topic_color", false).toString())
+        writeSetting("GUI", "stretch menu background", prefs.getBoolean("gs_stretch_menu_background", false).toString())
+        writeSetting("Map", "allow zooming", prefs.getBoolean("gs_can_zoom_on_maps", false).toString())
 
-	// Bug Fixes
-	writeSetting("Game", "prevent merchant equipping", if(prefs.getBoolean("gs_merchant_equipping_fix", false)) "true" else "false")
-	writeSetting("Game", "trainers training skills based on base skill", if(prefs.getBoolean("gs_trainers_bs", false)) "true" else "false")
+        // Bug Fixes
+        writeSetting("Game", "prevent merchant equipping", prefs.getBoolean("gs_merchant_equipping_fix", false).toString())
+        writeSetting("Game", "trainers training skills based on base skill", prefs.getBoolean("gs_trainers_bs", false).toString())
 
-	// Miscellaneous
-	writeSetting("Saves", "timeplayed", if(prefs.getBoolean("gs_add_time_to_saves", false)) "true" else "false")
-	writeSetting("Saves", "max quicksaves", prefs.getString("gs_maximum_quicksaves", "1").toString())
+        // Miscellaneous
+        writeSetting("Saves", "timeplayed", prefs.getBoolean("gs_add_time_to_saves", false).toString())
+        writeSetting("Saves", "max quicksaves", prefs.getString("gs_maximum_quicksaves", null))
 
-	// Engine Settings
-	writeSetting("Groundcover", "enabled", if(prefs.getBoolean("gs_groundcover_handling", true)) "true" else "false")
-	writeSetting("Navigator", "enable", if(prefs.getBoolean("gs_build_navmesh", true)) "true" else "false")
-	writeSetting("Navigator", "write to navmeshdb", if(prefs.getBoolean("gs_write_navmesh", false)) "true" else "false")
-	writeSetting("Navigator", "async nav mesh updater threads", prefs.getString("gs_navmesh_threads", "1").toString())
-	writeSetting("Physics", "async num threads", prefs.getString("gs_physics_threads", "1").toString())
-	writeSetting("Cells", "preload num threads", prefs.getString("gs_preload_threads", "1").toString())
+        // Engine Settings
+        writeSetting("Groundcover", "enabled", prefs.getBoolean("gs_groundcover_handling", false).toString())
+        writeSetting("Navigator", "enable", prefs.getBoolean("gs_build_navmesh", false).toString())
+        writeSetting("Navigator", "write to navmeshdb", prefs.getBoolean("gs_write_navmesh", false).toString())
+        writeSetting("Navigator", "async nav mesh updater threads", prefs.getString("gs_navmesh_threads", null))
+        writeSetting("Physics", "async num threads", prefs.getString("gs_physics_threads", null))
+        writeSetting("Cells", "preload num threads", prefs.getString("gs_preload_threads", null))
     }
 
     private fun startGame() {
@@ -623,7 +668,9 @@ class MainActivity : AppCompatActivity() {
                 val inst = GameInstaller(prefs.getString("game_files", "")!!)
 
                 // Regenerate the fallback file in case user edits their Morrowind.ini
-                inst.convertIni(prefs.getString("pref_encoding", GameInstaller.DEFAULT_CHARSET_PREF)!!)
+                inst.convertIni(prefs.getString("pref_encoding",
+                    R.string.pref_encoding_default.toString()
+                )!!)
 
                 generateOpenmwCfg()
 
@@ -634,7 +681,7 @@ class MainActivity : AppCompatActivity() {
                 file.Writer.write(Constants.OPENMW_CFG, "resources", Constants.RESOURCES)
                 file.Writer.write(Constants.OPENMW_CFG, "data", gameVFS+ktxFolder/* + "data=\"" + inst.findDataFiles() + "\""*/)
 
-                file.Writer.write(Constants.OPENMW_CFG, "encoding", prefs!!.getString("pref_encoding", GameInstaller.DEFAULT_CHARSET_PREF)!!)
+                file.Writer.write(Constants.OPENMW_CFG, "encoding", prefs.getString("pref_encoding", R.string.pref_encoding_default.toString())!!)
 
                 var src = File(Constants.RESOURCES)
                 var dst = File(Constants.USER_FILE_STORAGE + "/resources/")
@@ -645,58 +692,7 @@ class MainActivity : AppCompatActivity() {
 
                 obtainFixedScreenResolution()
                
-                configureDefaultsBin(mapOf(
-                        "scaling factor" to "%.2f".format(Locale.ROOT, scaling),
-                        // android-specific defaults
-                        "viewing distance" to "2048.0",
-                        "camera sensitivity" to "0.4",
-                        // and a bunch of windows positioning
-                        "stats x" to "0.0",
-                        "stats y" to "0.0",
-                        "stats w" to "0.375",
-                        "stats h" to "0.4275",
-                        "spells x" to "0.625",
-                        "spells y" to "0.5725",
-                        "spells w" to "0.375",
-                        "spells h" to "0.4275",
-                        "map x" to "0.625",
-                        "map y" to "0.0",
-                        "map w" to "0.375",
-                        "map h" to "0.5725",
-                        "inventory y" to "0.4275",
-                        "inventory w" to "0.6225",
-                        "inventory h" to "0.5725",
-                        "inventory container x" to "0.0",
-                        "inventory container y" to "0.4275",
-                        "inventory container w" to "0.6225",
-                        "inventory container h" to "0.5725",
-                        "inventory barter x" to "0.0",
-                        "inventory barter y" to "0.4275",
-                        "inventory barter w" to "0.6225",
-                        "inventory barter h" to "0.5725",
-                        "inventory companion x" to "0.0",
-                        "inventory companion y" to "0.4275",
-                        "inventory companion w" to "0.6225",
-                        "inventory companion h" to "0.5725",
-                        "dialogue x" to "0.095",
-                        "dialogue y" to "0.095",
-                        "dialogue w" to "0.810",
-                        "dialogue h" to "0.890",
-                        "console x" to "0.0",
-                        "console y" to "0.0",
-                        "container x" to "0.25",
-                        "container y" to "0.0",
-                        "container w" to "0.75",
-                        "container h" to "0.375",
-                        "barter x" to "0.25",
-                        "barter y" to "0.0",
-                        "barter w" to "0.75",
-                        "barter h" to "0.375",
-                        "companion x" to "0.25",
-                        "companion y" to "0.0",
-                        "companion w" to "0.75",
-                        "companion h" to "0.375"
-                ))
+                configureDefaultsBin(getConfigDefaults(scaling))
 
 		writeUserSettings()
 
@@ -710,6 +706,61 @@ class MainActivity : AppCompatActivity() {
             }
         }
         th.start()
+    }
+
+    protected open fun getConfigDefaults(scaling: Float): Map<String, String> {
+        return mapOf(
+            "scaling factor" to "%.2f".format(Locale.ROOT, scaling),
+            // android-specific defaults
+            "viewing distance" to "2048.0",
+            "camera sensitivity" to "0.4",
+            // and a bunch of windows positioning
+            "stats x" to "0.0",
+            "stats y" to "0.0",
+            "stats w" to "0.375",
+            "stats h" to "0.4275",
+            "spells x" to "0.625",
+            "spells y" to "0.5725",
+            "spells w" to "0.375",
+            "spells h" to "0.4275",
+            "map x" to "0.625",
+            "map y" to "0.0",
+            "map w" to "0.375",
+            "map h" to "0.5725",
+            "inventory y" to "0.4275",
+            "inventory w" to "0.6225",
+            "inventory h" to "0.5725",
+            "inventory container x" to "0.0",
+            "inventory container y" to "0.4275",
+            "inventory container w" to "0.6225",
+            "inventory container h" to "0.5725",
+            "inventory barter x" to "0.0",
+            "inventory barter y" to "0.4275",
+            "inventory barter w" to "0.6225",
+            "inventory barter h" to "0.5725",
+            "inventory companion x" to "0.0",
+            "inventory companion y" to "0.4275",
+            "inventory companion w" to "0.6225",
+            "inventory companion h" to "0.5725",
+            "dialogue x" to "0.095",
+            "dialogue y" to "0.095",
+            "dialogue w" to "0.810",
+            "dialogue h" to "0.890",
+            "console x" to "0.0",
+            "console y" to "0.0",
+            "container x" to "0.25",
+            "container y" to "0.0",
+            "container w" to "0.75",
+            "container h" to "0.375",
+            "barter x" to "0.25",
+            "barter y" to "0.0",
+            "barter w" to "0.75",
+            "barter h" to "0.375",
+            "companion x" to "0.25",
+            "companion y" to "0.0",
+            "companion w" to "0.75",
+            "companion h" to "0.375"
+        )
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {

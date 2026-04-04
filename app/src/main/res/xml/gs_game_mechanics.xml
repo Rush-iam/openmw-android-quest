@@ -9,6 +9,7 @@
     <CheckBoxPreference
         android:key="gs_soulgem_values_rebalance"
         android:title="Soulgem Values Rebalance"
+        android:defaultValue="true"
         android:summary="Make the value of filled soul gems dependent only on soul magnitude."/>
 
     <CheckBoxPreference
@@ -24,6 +25,7 @@
     <CheckBoxPreference
         android:key="gs_npc_avoid_collision"
         android:title="NPC Avoid Collision"
+        android:defaultValue="true"
         android:summary="If enabled NPCs apply evasion maneuver to avoid collisions with others."/>
 
     <CheckBoxPreference
@@ -39,6 +41,7 @@
     <CheckBoxPreference
         android:key="gs_swim_upward_correction"
         android:title="Swim Upward Correction"
+        android:defaultValue="true"
         android:summary="Makes player swim a bit upward from the line of sight. Applies only in third person mode. Intended to make simpler swimming without diving."/>
 
     <CheckBoxPreference

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">OpenMW (Quest-optimized)</string>
+    <string name="app_name">OMW</string>
 
     <string-array name="pref_encoding_entries">
         <item>Central and Eastern European (win1250)</item>
@@ -26,6 +26,7 @@
         <item>2</item>
     </string-array>
 
+    <string name="gs_show_owned_default">3</string>
     <string-array name="gs_show_owned_entries">
         <item>Off</item>
         <item>Tool Tip Only</item>
@@ -111,6 +112,7 @@
         <item>4</item>
         <item>5</item>
     </string-array>
+    <string name="gs_framerate_limit_default">60</string>
 
     <string name="general_settings">Setup</string>
     <string name="start_game_label">Start game</string>

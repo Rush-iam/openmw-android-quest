@@ -5,7 +5,6 @@
         <CheckBoxPreference
             android:key="gs_groundcover_handling"
             android:title="Enable Groundcover Instancing"
-            android:defaultValue="true"
             android:summary="Enable separate groundcover handling"/>
 
         <CheckBoxPreference

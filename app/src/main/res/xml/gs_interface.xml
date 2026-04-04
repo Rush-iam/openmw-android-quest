@@ -19,11 +19,12 @@
             android:dialogTitle="Show Owned"
             android:entries="@array/gs_show_owned_entries"
             android:entryValues="@array/gs_show_owned_values"
-            android:defaultValue="0" />
+            android:defaultValue="@string/gs_show_owned_default" />
 
         <CheckBoxPreference
             android:key="gs_show_effect_duration"
             android:title="Show Effects Duration"
+            android:defaultValue="true"
             android:summary="How the remaining duration of magic effects and lights if this setting is true. The remaining duration is displayed in the tooltip by hovering over the magical effect."/>
 
         <CheckBoxPreference
@@ -44,6 +45,7 @@
         <CheckBoxPreference
             android:key="gs_change_dialogue_topic_color"
             android:title="Change Dialogue Topic Color"
+            android:defaultValue="true"
             android:summary="If this setting is true, dialogue topics will have a different color if the topic is specific to the NPC you're talking to or the topic was previously seen. Color can be changed in settings.cfg."/>
 
         <CheckBoxPreference
@@ -54,6 +56,7 @@
         <CheckBoxPreference
             android:key="gs_can_zoom_on_maps"
             android:title="Can Zoom on Maps"
+            android:defaultValue="true"
             android:summary="Enable zooming on local and global maps."/>
 
     </PreferenceCategory>

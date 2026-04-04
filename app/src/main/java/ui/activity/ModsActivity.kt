@@ -36,7 +36,7 @@ import constants.Constants
 import android.view.Menu
 import com.codekidlabs.storagechooser.StorageChooser
 import com.google.android.material.textfield.TextInputLayout
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import android.widget.EditText
 import android.app.AlertDialog
 

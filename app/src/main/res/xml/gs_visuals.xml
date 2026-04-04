@@ -8,8 +8,8 @@
             android:title="Object Paging Min Size"
             android:dialogTitle="Object Paging Min Size"
             android:inputType="numberDecimal"
-            android:hint="0.010"
-            android:defaultValue="0.010"
+            android:hint="0.02"
+            android:defaultValue="0.02"
             android:summary="Controls how large an object must be to be visible in the scene. The object’s size is divided by its distance to the camera and the result of the division is compared with this value. The smaller this value is, the more objects you will see in the scene."/>
 
         <CheckBoxPreference
@@ -41,14 +41,14 @@
             android:title="Framerate Limit"
             android:dialogTitle="Framerate Limit"
             android:inputType="numberDecimal"
-            android:hint="60"
-            android:defaultValue="60"
+            android:hint="@string/gs_framerate_limit_default"
+            android:defaultValue="@string/gs_framerate_limit_default"
             android:summary="Maximum rendering framerate."/>
 
         <CheckBoxPreference
             android:key="gs_reverse_z"
             android:title="Reverse-z Depth Buffer"
-            android:defaultValue="false"
+            android:defaultValue="true"
             android:summary="Enabling reduce z fighting."/>
 
     </PreferenceCategory>
@@ -98,6 +98,7 @@
         <CheckBoxPreference
             android:key="gs_radial_fog"
             android:title="Radial Fog"
+            android:defaultValue="true"
             android:summary="By default, the fog becomes thicker proportionally to your distance from the clipping plane set at the clipping distance, which causes distortion at the edges of the screen. This setting makes the fog use the actual eye point distance (or so called Euclidean distance) to calculate the fog, which makes the fog look less artificial, especially if you have a wide FOV."/>
 
         <CheckBoxPreference

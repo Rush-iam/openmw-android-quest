@@ -61,7 +61,7 @@ import constants.Constants
 import android.content.*
 import android.net.Uri
 
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import org.jetbrains.anko.defaultSharedPreferences
 
 class ConfigureCallback(activity: Activity) : View.OnTouchListener {

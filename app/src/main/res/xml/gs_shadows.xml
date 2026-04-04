@@ -27,7 +27,6 @@
         <CheckBoxPreference
             android:key="gs_indoor_shadows"
             android:title="Enable Indoor Shadows"
-            android:defaultValue="true"
             android:summary="Due to limitations with Morrowind's data, only actors can cast shadows indoors, which some might feel is distracting."/>
 
         <ListPreference
@@ -53,8 +52,8 @@
             android:title="Shadows Rendering Distance"
             android:dialogTitle="Shadows Distance Limit"
             android:inputType="numberDecimal"
-            android:hint="8192"
-            android:defaultValue="8192"
+            android:hint="4096"
+            android:defaultValue="4096"
             android:summary="The distance from the camera at which shadows completely disappear."/>
 
         <EditTextPreference
