@@ -28,12 +28,13 @@ import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.os.Build.VERSION
 import android.preference.EditTextPreference
 import android.preference.Preference
 import android.preference.PreferenceFragment
 import android.preference.PreferenceGroup
+import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.preference.PreferenceManager
 
 import com.codekidlabs.storagechooser.StorageChooser
 import com.libopenmw.openmw.R
@@ -47,6 +48,9 @@ import utils.MyApp
 import java.util.*
 import java.io.File
 import constants.Constants
+import permission.PermissionHelper
+import ui.activity.MainActivity.Companion.TAG
+import java.io.IOException
 
 class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener {
 
@@ -93,6 +97,7 @@ class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener 
             if (ContextCompat.checkSelfPermission(activity,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 showError(R.string.permissions_error_title, R.string.permissions_error_message)
+                PermissionHelper.getWriteExternalStoragePermission(activity)
             } else {
                 val chooser = StorageChooser.Builder()
                     .withActivity(activity)
@@ -109,8 +114,31 @@ class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener 
             true
         }
 
-        if (android.os.Build.VERSION.SDK_INT < 29)
-            findPreference("pref_display_cutout_area").isEnabled = false
+        updateVisiblePreferences()
+    }
+
+    private fun updateVisiblePreferences() {
+        val sharedPref = preferenceScreen.sharedPreferences
+        val isGameFilesSet = !sharedPref.getString("game_files", "").isNullOrEmpty()
+
+        // List of keys that should always be enabled
+        val whiteList = listOf("game_files", "pref_encoding")
+
+        for (i in 0 until preferenceScreen.preferenceCount) {
+            val pref = preferenceScreen.getPreference(i)
+            if (pref is PreferenceGroup) {
+                for (j in 0 until pref.preferenceCount) {
+                    val singlePref = pref.getPreference(j)
+                    if (!whiteList.contains(singlePref.key)) {
+                        singlePref.isEnabled = isGameFilesSet
+                    }
+                }
+            } else {
+                if (!whiteList.contains(pref.key)) {
+                    pref.isEnabled = isGameFilesSet
+                }
+            }
+        }
     }
 
     /**
@@ -120,6 +148,28 @@ class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener 
      */
     private fun setupData(path: String) {
         val sharedPref = preferenceScreen.sharedPreferences
+
+        // create user dirs
+        File(Constants.USER_CONFIG).mkdirs()
+        File(Constants.USER_FILE_STORAGE + "/launcher/icons").mkdirs()
+        File(Constants.USER_FILE_STORAGE + "/launcher/delta").mkdirs()
+        File(Constants.USER_FILE_STORAGE + "/launcher/ModCollections").mkdirs()
+
+        if (!File(Constants.USER_OPENMW_CFG).exists())
+            File(Constants.USER_OPENMW_CFG).writeText("# This is the user openmw.cfg. Feel free to modify it as you wish.\n")
+        generateOpenmwCfg()
+
+        val currentPreset = sharedPref.getString("modCollection", "Default")!!
+        if (!File(Constants.USER_FILE_STORAGE + "/launcher/ModCollections/" + currentPreset).exists())
+            File(Constants.USER_FILE_STORAGE + "/launcher/ModCollections/" + currentPreset).writeText("# This is the user openmw.cfg. Feel free to modify it as you wish.\n")
+
+        if (!File(Constants.USER_FILE_STORAGE + "/launcher/ModCollections/Default").exists())
+            File(Constants.USER_FILE_STORAGE + "/launcher/ModCollections/Default").writeText("")
+
+        // create icons files hint
+        if (!File(Constants.USER_FILE_STORAGE + "/launcher/icons/paste custom icons here.txt").exists())
+            File(Constants.USER_FILE_STORAGE + "/launcher/icons/paste custom icons here.txt").writeText(
+                "attack.png \ninventory.png \njournal.png \njump.png \nkeyboard.png \nmouse.png \npause.png \npointer_arrow.png \nrun.png \nsave.png \nsneak.png \nthird_person.png \ntoggle_magic.png \ntoggle_weapon.png \ntoggle.png \nuse.png \nwait.png \nscroll_wheel.png \npostprocessing.png \nstats.png")
 
         // reset the setting so that it's erased on error instead of keeping
         // possibly stale value
@@ -143,6 +193,44 @@ class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener 
             if (sharedPref.getString("mods_dir", "")!! == "")
                 putString("mods_dir", gameFiles + "/")
             apply()
+        }
+
+        updateVisiblePreferences()
+    }
+
+    /**
+     * Generates openmw.cfg using values from openmw.base.cfg combined with mod manager settings
+     */
+    private fun generateOpenmwCfg() {
+        // contents of openmw.base.cfg
+        val base: String
+        // contents of openmw.fallback.cfg
+        val fallback: String
+
+        // try to read the files
+        try {
+            base = File(Constants.OPENMW_BASE_CFG).readText()
+            // TODO: support user custom options
+            fallback = File(Constants.OPENMW_FALLBACK_CFG).readText()
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to read openmw.base.cfg or openmw.fallback.cfg", e)
+            return
+        }
+
+        try {
+            // generate final output.cfg
+            var output = base + "\n" + fallback + "\n"
+
+            // Add Data Files and default plugins when missing
+            val gameDir = PreferenceManager.getDefaultSharedPreferences(activity).getString("game_files", "")
+            if (!File(Constants.USER_OPENMW_CFG).readText().contains(gameDir + "/Data Files")) {
+                File(Constants.USER_OPENMW_CFG).writeText("data=" + gameDir + "/Data Files\ncontent=Morrowind.esm\ncontent=Tribunal.esm\ncontent=Bloodmoon.esm\nfallback-archive=Morrowind.bsa\nfallback-archive=Tribunal.bsa\nfallback-archive=Bloodmoon.bsa\n")
+            }
+
+            // write everything to openmw.cfg
+            File(Constants.OPENMW_CFG).writeText(output)
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to generate openmw.cfg.", e)
         }
     }
 

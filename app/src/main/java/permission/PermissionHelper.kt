@@ -28,20 +28,11 @@ import androidx.core.content.ContextCompat
 
 object PermissionHelper {
     fun getWriteExternalStoragePermission(activity: Activity) {
-        if (Build.VERSION.SDK_INT >= 23) {
-            if (ContextCompat.checkSelfPermission(activity,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                if (!ActivityCompat.shouldShowRequestPermissionRationale(activity,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                    ActivityCompat.requestPermissions(activity,
-                        arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 23
-                    )
-                // wait till granted or freeze infinitelly
-                while (ContextCompat.checkSelfPermission(activity,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
-                    Thread.sleep(50)      
-                }
-            }
+        if (ContextCompat.checkSelfPermission(activity,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                activity, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 23
+            )
         }
     }
 }

@@ -32,8 +32,8 @@ class ImmersiveActivity : AppSystemActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // App hangs if there is a permission request by a panel activity onCreate
-        PermissionHelper.getWriteExternalStoragePermission(this@ImmersiveActivity)
+        // Permission requests by panel activities do not work
+        PermissionHelper.getWriteExternalStoragePermission(this)
     }
 
     override fun onSceneReady() {
