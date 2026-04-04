@@ -27,7 +27,7 @@
         <meta-data android:name="com.oculus.handtracking.version" android:value="V2.0" />
         <uses-native-library android:name="libossdk.oculus.so" android:required="true" />
         <activity
-            android:name="ui.activity.MainActivity"
+            android:name="com.queststoredb.openmw_quest.ImmersiveMainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:exported="true"
             android:screenOrientation="fullUser"

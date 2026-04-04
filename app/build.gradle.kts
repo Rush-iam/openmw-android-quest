@@ -49,7 +49,7 @@ android {
         versionCode = vCode
         versionName = calculateVersion(vCode)
 
-        minSdk = 21
+        minSdk = 29
         // Do not update past 29 -- see https://github.com/xyzz/openmw-android/issues/30
         targetSdk = 29
 
@@ -71,7 +71,7 @@ android {
 
         getByName("debug") {
             applicationIdSuffix = ".debug"
-            isDebuggable = false
+            isDebuggable = true
         }
     }
 
@@ -136,6 +136,7 @@ dependencies {
     implementation("com.meta.spatial:meta-spatial-sdk:$metaSpatialSdkVersion")
     implementation ("com.meta.spatial:meta-spatial-sdk-vr:${metaSpatialSdkVersion}")
     implementation("com.meta.spatial:meta-spatial-sdk-toolkit:$metaSpatialSdkVersion")
+    implementation("com.meta.spatial:meta-spatial-sdk-castinputforward:$metaSpatialSdkVersion")
     ksp("com.meta.spatial.plugin:com.meta.spatial.plugin.gradle.plugin:$metaSpatialSdkVersion")
 }
 

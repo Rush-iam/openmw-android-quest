@@ -66,7 +66,7 @@ import kotlin.io.writeText
 import kotlin.system.exitProcess
 import kotlin.use
 
-class MainActivity : AppCompatActivity() {
+open class MainActivity : AppCompatActivity() {
     private lateinit var prefs: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -348,7 +348,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * Determines required screen scaling based on resolution and physical size of the device
      */
-    private fun determineScaling(): Float {
+    protected open fun determineScaling(): Float {
         // The idea is to stretch an old-school 1280x960 monitor to the device screen
         // Assume that 1x scaling corresponds to resolution of 1280x960
         // Assume that the longest side of the device corresponds to the 1280 side
