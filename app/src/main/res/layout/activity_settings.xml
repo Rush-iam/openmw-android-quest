@@ -3,6 +3,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:paddingLeft="@dimen/layout_padding_horizontal"
+    android:paddingRight="@dimen/layout_padding_horizontal"
+    android:paddingTop="@dimen/layout_padding_vertical"
+    android:paddingBottom="@dimen/layout_padding_vertical"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context="ui.activity.SettingsActivity"
     android:orientation="vertical">

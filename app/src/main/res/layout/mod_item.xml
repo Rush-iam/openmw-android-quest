@@ -3,6 +3,10 @@
     android:id="@+id/cardView"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:paddingLeft="@dimen/layout_padding_horizontal"
+    android:paddingRight="@dimen/layout_padding_horizontal"
+    android:paddingTop="@dimen/layout_padding_vertical"
+    android:paddingBottom="@dimen/layout_padding_vertical"
     android:orientation="horizontal"
     android:background="@drawable/mod_item_background"
     >

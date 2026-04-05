@@ -73,24 +73,9 @@ class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener 
         }
 
         findPreference("pref_mods").setOnPreferenceClickListener {
-            // Just prevent crash here if data files are not selected
-            val sharedPref = preferenceScreen.sharedPreferences
-            val inst = GameInstaller(sharedPref.getString("game_files", "")!!)
-            if (!inst.check()) {
-            AlertDialog.Builder(getActivity())
-                .setTitle(R.string.no_data_files_title)
-                .setMessage(R.string.no_data_files_message)
-                .setPositiveButton(android.R.string.ok) { _: DialogInterface, _: Int -> }
-                .show()
-
-                false
-            }
-            else
-            {
-                val intent = Intent(activity, ModsActivity::class.java)
-                this.startActivity(intent)
-                true
-            }
+            val intent = Intent(activity, ModsActivity::class.java)
+            this.startActivity(intent)
+            true
         }
 
         findPreference("game_files").setOnPreferenceClickListener {
