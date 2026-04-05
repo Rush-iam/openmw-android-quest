@@ -287,6 +287,42 @@ open class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * Generates openmw.cfg using values from openmw.base.cfg combined with mod manager settings
+     */
+    private fun generateOpenmwCfg() {
+        // contents of openmw.base.cfg
+        val base: String
+        // contents of openmw.fallback.cfg
+        val fallback: String
+
+        // try to read the files
+        try {
+            base = File(Constants.OPENMW_BASE_CFG).readText()
+            // TODO: support user custom options
+            fallback = File(Constants.OPENMW_FALLBACK_CFG).readText()
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to read openmw.base.cfg or openmw.fallback.cfg", e)
+            return
+        }
+
+        try {
+            // generate final output.cfg
+            var output = base + "\n" + fallback + "\n"
+
+            // Add Data Files and default plugins when missing
+            val gameDir = PreferenceManager.getDefaultSharedPreferences(this).getString("game_files", "")
+            if (!File(Constants.USER_OPENMW_CFG).readText().contains(gameDir + "/Data Files")) {
+                File(Constants.USER_OPENMW_CFG).writeText("data=" + gameDir + "/Data Files\ncontent=Morrowind.esm\ncontent=Tribunal.esm\ncontent=Bloodmoon.esm\nfallback-archive=Morrowind.bsa\nfallback-archive=Tribunal.bsa\nfallback-archive=Bloodmoon.bsa\n")
+            }
+
+            // write everything to openmw.cfg
+            File(Constants.OPENMW_CFG).writeText(output)
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to generate openmw.cfg.", e)
+        }
+    }
+
+    /**
      * Determines required screen scaling based on resolution and physical size of the device
      */
     protected open fun determineScaling(): Float {
@@ -602,6 +638,7 @@ open class MainActivity : AppCompatActivity() {
                         removeResourceFiles()
                     }
                 } catch (e: Exception) {
+                    Log.e(TAG, e.toString())
                     //reinstallStaticFiles()
                     removeResourceFiles()
                 }
@@ -614,6 +651,7 @@ open class MainActivity : AppCompatActivity() {
                 )!!)
 
                 // openmw.cfg: data, resources
+                generateOpenmwCfg()
                 val gameVFS = "\"" + Constants.USER_FILE_STORAGE + "resources/vfs-mw\"\n"
                 val ktxFolder = if (prefs.getBoolean("pref_loadKTX", false) == true) "data=\"" + Constants.USER_FILE_STORAGE + "launcher/ktx\"\n" else ""
 

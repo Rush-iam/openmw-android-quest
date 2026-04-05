@@ -157,7 +157,6 @@ class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener 
 
         if (!File(Constants.USER_OPENMW_CFG).exists())
             File(Constants.USER_OPENMW_CFG).writeText("# This is the user openmw.cfg. Feel free to modify it as you wish.\n")
-        generateOpenmwCfg()
 
         val currentPreset = sharedPref.getString("modCollection", "Default")!!
         if (!File(Constants.USER_FILE_STORAGE + "/launcher/ModCollections/" + currentPreset).exists())
@@ -196,42 +195,6 @@ class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener 
         }
 
         updateVisiblePreferences()
-    }
-
-    /**
-     * Generates openmw.cfg using values from openmw.base.cfg combined with mod manager settings
-     */
-    private fun generateOpenmwCfg() {
-        // contents of openmw.base.cfg
-        val base: String
-        // contents of openmw.fallback.cfg
-        val fallback: String
-
-        // try to read the files
-        try {
-            base = File(Constants.OPENMW_BASE_CFG).readText()
-            // TODO: support user custom options
-            fallback = File(Constants.OPENMW_FALLBACK_CFG).readText()
-        } catch (e: IOException) {
-            Log.e(TAG, "Failed to read openmw.base.cfg or openmw.fallback.cfg", e)
-            return
-        }
-
-        try {
-            // generate final output.cfg
-            var output = base + "\n" + fallback + "\n"
-
-            // Add Data Files and default plugins when missing
-            val gameDir = PreferenceManager.getDefaultSharedPreferences(activity).getString("game_files", "")
-            if (!File(Constants.USER_OPENMW_CFG).readText().contains(gameDir + "/Data Files")) {
-                File(Constants.USER_OPENMW_CFG).writeText("data=" + gameDir + "/Data Files\ncontent=Morrowind.esm\ncontent=Tribunal.esm\ncontent=Bloodmoon.esm\nfallback-archive=Morrowind.bsa\nfallback-archive=Tribunal.bsa\nfallback-archive=Bloodmoon.bsa\n")
-            }
-
-            // write everything to openmw.cfg
-            File(Constants.OPENMW_CFG).writeText(output)
-        } catch (e: IOException) {
-            Log.e(TAG, "Failed to generate openmw.cfg.", e)
-        }
     }
 
     /**
