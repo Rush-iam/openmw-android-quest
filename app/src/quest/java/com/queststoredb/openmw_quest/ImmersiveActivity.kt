@@ -1,7 +1,9 @@
 package com.queststoredb.openmw_quest
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import androidx.preference.PreferenceManager
 import com.libopenmw.openmw.BuildConfig
 import com.meta.spatial.core.SpatialFeature
 import com.meta.spatial.runtime.ReferenceSpace
@@ -14,10 +16,21 @@ import kotlinx.coroutines.launch
 import ui.activity.MainActivity
 import com.libopenmw.openmw.R
 import com.meta.spatial.castinputforward.CastInputForwardFeature
-import com.meta.spatial.runtime.LayerConfig
-import com.meta.spatial.runtime.PanelShapeType
+import com.meta.spatial.isdk.IsdkDefaultCursorSystem
+import com.meta.spatial.isdk.IsdkSystem
+import com.meta.spatial.runtime.ButtonBits
+import com.meta.spatial.toolkit.ActivityPanelRegistration
+import com.meta.spatial.toolkit.CylinderShapeOptions
+import com.meta.spatial.toolkit.MediaPanelSettings
+import com.meta.spatial.toolkit.PanelInputOptions
+import com.meta.spatial.toolkit.PixelDisplayOptions
+import com.meta.spatial.vr.LocomotionSystem
+import constants.Constants
 import kotlin.collections.mapOf
 import permission.PermissionHelper
+import ui.activity.GameActivity
+import ui.controls.Osc
+
 
 class ImmersiveActivity : AppSystemActivity() {
     private val activityScope = CoroutineScope(Dispatchers.Main)
@@ -38,28 +51,36 @@ class ImmersiveActivity : AppSystemActivity() {
 
     override fun onSceneReady() {
         super.onSceneReady()
+        activityScope.launch {
+            glXFManager.inflateGLXF(Uri.parse("scenes/scene.glxf"), keyName = "scene")
+        }
         scene.setReferenceSpace(ReferenceSpace.LOCAL)
-        activityScope
-            .launch {
-                glXFManager.inflateGLXF(Uri.parse("scenes/scene.glxf"), keyName = "scene")
-            }
+        systemManager.findSystem<LocomotionSystem>().enableLocomotion(false)
+
+        systemManager.registerSystem(ControllerToGamepadSystem())
+        val isdkSystem = systemManager.findSystem<IsdkSystem>()
+        // TODO: why off-panel events do not work?
+        isdkSystem.registerObserver(ControllerToGamepadSystem.thumbstickTranslator)
+
+        val cursorSystem = systemManager.findSystem<IsdkDefaultCursorSystem>()
+        // TODO: hide cursors if SDL cursor is hidden
     }
 
     override fun registerPanels(): List<PanelRegistration> {
         return listOf(
-            PanelRegistration(R.id.panel) {
-                config {
-                    width = 4.0f
-                    height = 3.0f
-                    layoutWidthInPx = 2400
-                    layoutHeightInPx = 1800
-                    panelShapeType = PanelShapeType.CYLINDER
-                    radiusForCylinderOrSphere = 20.0f
-                    layerConfig = LayerConfig()
-                    unlit = true
-                }
-                activityClass = ImmersiveMainActivity::class.java
-            },
+            ActivityPanelRegistration(
+                R.id.panel,
+                classIdCreator = { ImmersiveMainActivity::class.java },
+                settingsCreator = {
+                    MediaPanelSettings(
+                        shape = CylinderShapeOptions(20.0f, 4.0f, 3.0f),
+                        display = PixelDisplayOptions(2400, 1800),
+                        input = PanelInputOptions(ButtonBits.ButtonTriggerL or ButtonBits.ButtonTriggerR),
+                    )
+                },
+                // TODO: replace with registerInteractableObserver
+                panelSetup = { panel, entity -> panel.addInputListener(PanelPointerToMouseTranslator()) }
+            ),
         )
     }
 }
@@ -130,5 +151,38 @@ class ImmersiveMainActivity: MainActivity() {
             "companion w" to "0.46",
             "companion h" to "0.5"
         )
+    }
+
+    override fun runGame() {
+        val intent = Intent(this, ImmersiveGameActivity::class.java)
+        finish()
+        this.startActivityForResult(intent, 1)
+    }
+}
+
+class ImmersiveGameActivity : GameActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        ControllerToGamepadSystem.initialize()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        PanelPointerToMouseTranslator.isEnabled = hasFocus
+        ControllerToGamepadSystem.isEnabled = hasFocus
+    }
+
+    override fun onPause() {
+        super.onPause()
+        PanelPointerToMouseTranslator.isEnabled = false
+        ControllerToGamepadSystem.isEnabled = false
+    }
+
+    override fun showControls() {
+        // TODO: remove redundant Osc entries, show controls only if mouse active
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        if (!prefs.getBoolean(Constants.HIDE_CONTROLS, false)) {
+            Osc().placeElements(layout)
+        }
     }
 }

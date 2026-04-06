@@ -251,17 +251,10 @@ open class MainActivity : AppCompatActivity() {
         fileOrDirectory.delete()
     }
 
-    private fun logConfig() {
-
-    }
-
-    private fun runGame() {
-        logConfig()
-        val intent = Intent(this@MainActivity,
-            GameActivity::class.java)
+    protected open fun runGame() {
+        val intent = Intent(this, GameActivity::class.java)
         finish()
-
-        this@MainActivity.startActivityForResult(intent, 1)
+        this.startActivityForResult(intent, 1)
     }
 
 

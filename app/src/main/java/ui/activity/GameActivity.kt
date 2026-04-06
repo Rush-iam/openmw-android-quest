@@ -144,7 +144,7 @@ private fun patchShaders() {
     }
 }
 
-class GameActivity : SDLActivity() {
+open class GameActivity : SDLActivity() {
 
     private var prefs: SharedPreferences? = null
 
@@ -305,7 +305,7 @@ class GameActivity : SDLActivity() {
             showControls()
     }
 
-    private fun showControls() {
+    protected open fun showControls() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
 
         mouseMode = MouseMode.get((prefs.getString("pref_mouse_mode",

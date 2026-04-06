@@ -8,7 +8,6 @@
     <uses-feature android:name="oculus.software.handtracking" android:required="false" />
     <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
     <uses-feature android:name="com.oculus.feature.VIRTUAL_KEYBOARD" android:required="false" />
-    <uses-feature android:glEsVersion="0x00030001" />
     <uses-feature android:name="oculus.software.overlay_keyboard" android:required="false" />
     <uses-feature android:name="com.oculus.feature.RENDER_MODEL" android:required="false" />
     <uses-permission android:name="com.oculus.permission.RENDER_MODEL" />
@@ -29,8 +28,11 @@
         <activity
             android:name="com.queststoredb.openmw_quest.ImmersiveMainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
-            android:exported="true"
-            android:screenOrientation="fullUser"
+            android:allowEmbedded="true">
+        </activity>
+        <activity
+            android:name="com.queststoredb.openmw_quest.ImmersiveGameActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize"
             android:allowEmbedded="true">
         </activity>
         <activity
