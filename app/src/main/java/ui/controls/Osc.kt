@@ -399,7 +399,7 @@ open class Osc {
     protected var visibilityState = 0
     private val btnMouse = OscCustomButton("mouse", "mouse.png", OscVisibility.NULL,
         R.drawable.mouse, TOP_BAR_SPACING * 7, 0) { toggleMouse() }
-    private val btnTopToggle = OscCustomButton("toggle", "toggle.png", OscVisibility.NULL,
+    protected var btnTopToggle = OscCustomButton("toggle", "toggle.png", OscVisibility.NULL,
         R.drawable.toggle, 0, 0) { toggleTopControls() }
 
     private val joystickLeft = OscJoystickLeft("joystickLeft", OscVisibility.NORMAL, 0, 0, 512, 0)
@@ -553,7 +553,7 @@ open class Osc {
      * - mouse-mode visibility
      * - actual mouse cursor visibility
      */
-    protected open fun showBasedOnState() {
+    open fun showBasedOnState() {
         // If keyboard or mouse-mode or both, then hide everything
         if (keyboardVisible || mouseVisible) {
             setVisibility(OscVisibility.NULL.v)

@@ -113,15 +113,17 @@ class TouchControllersToGamepadSystem : SystemBase() {
     fun translateThumbsticks(event: PointerEvent) {
         if (!isEnabled || event.semanticType != SemanticType.Scroll.id)
             return
-        if (SDLActivity.isMouseShown() == 1) {
+        val axis = if (event.pointerType == LEFT_HAND_POINTER_TYPE) 0 else 2
+        if (SDLActivity.isMouseShown() == 0) {
+            SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis, event.scrollInfo.x)
+            SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis + 1, -event.scrollInfo.y)
+        }
+        else {
             // Disable Left Thumbstick cursor control because there is a controller pointer.
             // Disable Right Thumbstick scrolling: does not work correctly for an unknown reason.
-            return
+            SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis, 0.0f)
+            SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis + 1, 0.0f)
         }
-
-        val axis = if (event.pointerType == LEFT_HAND_POINTER_TYPE) 0 else 2
-        SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis, event.scrollInfo.x)
-        SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis + 1, -event.scrollInfo.y)
     }
 
     private fun sendGamepadKeyEvent(action: Int, keyCode: Int) {

@@ -1,5 +1,6 @@
 package com.queststoredb.openmw_quest
 
+import android.view.Choreographer
 import android.view.KeyEvent
 import android.view.View
 import android.widget.RelativeLayout
@@ -15,10 +16,17 @@ import ui.controls.TOP_BAR_SPACING
 
 
 class ImmersiveOsc : Osc() {
+    private val frameCallback = object : Choreographer.FrameCallback {
+        override fun doFrame(frameTimeNanos: Long) {
+            showBasedOnState()
+            Choreographer.getInstance().postFrameCallback(this)
+        }
+    }
+
     override fun placeElements(target: RelativeLayout) {
+        btnTopToggle = OscCustomButton("Extra menu", "toggle.png", OscVisibility.ESSENTIAL,
+            R.drawable.toggle, 0, 0, ::toggleTopControls)
         topButtons = arrayListOf(
-            OscCustomButton("Extra menu", "toggle.png", OscVisibility.ESSENTIAL,
-                R.drawable.toggle, 0, 0, ::toggleTopControls),
             OscCustomButton("Keyboard", "keyboard.png", OscVisibility.ESSENTIAL,
                 R.drawable.keyboard, TOP_BAR_SPACING * 1, 0, ::toggleKeyboard),
             OscImageButton("Post Processing", "postprocessing.png", OscVisibility.ESSENTIAL,
@@ -30,8 +38,13 @@ class ImmersiveOsc : Osc() {
         )
         for (button in topButtons)
             button.view?.tooltipText = button.uniqueId
-        elements = topButtons
+        elements = ArrayList(arrayListOf(btnTopToggle) + topButtons)
         super.placeElements(target)
+        // Parent call overrides visibility to NULL: revert back to ESSENTIAL
+        for (element in elements)
+            element.visibility = OscVisibility.ESSENTIAL
+
+        Choreographer.getInstance().postFrameCallback(frameCallback)
     }
 
     override fun showBasedOnState() {
