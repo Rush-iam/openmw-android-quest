@@ -57,13 +57,14 @@ class ImmersiveActivity : AppSystemActivity() {
         scene.setReferenceSpace(ReferenceSpace.LOCAL)
         systemManager.findSystem<LocomotionSystem>().enableLocomotion(false)
 
-        systemManager.registerSystem(ControllerToGamepadSystem())
+        val touchControllersToGamepadSystem = TouchControllersToGamepadSystem()
+        systemManager.registerSystem(touchControllersToGamepadSystem)
         val isdkSystem = systemManager.findSystem<IsdkSystem>()
         // TODO: why off-panel events do not work?
-        isdkSystem.registerObserver(ControllerToGamepadSystem.thumbstickTranslator)
+        isdkSystem.registerObserver(touchControllersToGamepadSystem::translateThumbsticks)
 
         val cursorSystem = systemManager.findSystem<IsdkDefaultCursorSystem>()
-        // TODO: hide cursors if SDL cursor is hidden
+        // TODO: hide pointers & lasers if SDL cursor is hidden
     }
 
     override fun registerPanels(): List<PanelRegistration> {
@@ -163,26 +164,25 @@ class ImmersiveMainActivity: MainActivity() {
 class ImmersiveGameActivity : GameActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ControllerToGamepadSystem.initialize()
+        TouchControllersToGamepadSystem.initialize()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         PanelPointerToMouseTranslator.isEnabled = hasFocus
-        ControllerToGamepadSystem.isEnabled = hasFocus
+        TouchControllersToGamepadSystem.isEnabled = hasFocus
     }
 
     override fun onPause() {
         super.onPause()
         PanelPointerToMouseTranslator.isEnabled = false
-        ControllerToGamepadSystem.isEnabled = false
+        TouchControllersToGamepadSystem.isEnabled = false
     }
 
     override fun showControls() {
-        // TODO: remove redundant Osc entries, show controls only if mouse active
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         if (!prefs.getBoolean(Constants.HIDE_CONTROLS, false)) {
-            Osc().placeElements(layout)
+            ImmersiveOsc().placeElements(layout)
         }
     }
 }

@@ -391,12 +391,12 @@ enum class OscVisibility(val v: Int) {
     NORMAL(2),
 }
 
-class Osc {
+open class Osc {
     private var osk = Osk()
     var keyboardVisible = false //< Mode where only keyboard is visible
     var mouseVisible = false //< Mode where only mouse-switch icon is visible
     private var topVisible = true //< The controls located at the top hidden behind the hamburger toggle
-    private var visibilityState = 0
+    protected var visibilityState = 0
     private val btnMouse = OscCustomButton("mouse", "mouse.png", OscVisibility.NULL,
         R.drawable.mouse, TOP_BAR_SPACING * 7, 0) { toggleMouse() }
     private val btnTopToggle = OscCustomButton("toggle", "toggle.png", OscVisibility.NULL,
@@ -406,7 +406,7 @@ class Osc {
     private val joystickRight = OscJoystickRight("joystickRight", OscVisibility.NORMAL, 512, 0, 512, 1, 0.0f)
     private val menuJoystickRight = OscJoystickRight("menuJoystickRight", OscVisibility.NORMAL, VIRTUAL_SCREEN_WIDTH - JOYSTICK_SIZE - JOYSTICK_OFFSET, 400, JOYSTICK_SIZE, 1)
 
-    private var elements = arrayListOf(
+    protected var elements = arrayListOf(
         joystickLeft,
         joystickRight,
         menuJoystickRight,
@@ -434,7 +434,7 @@ class Osc {
             630, KeyEvent.KEYCODE_E)
     )
 
-    private val topButtons: ArrayList<OscElement>
+    protected var topButtons: ArrayList<OscElement>
     private val quickButtons = arrayListOf<OscHiddenButton>()
     private val qp: OscQuickKeysToggle
 
@@ -499,7 +499,7 @@ class Osc {
         elements.addAll(topButtons)
     }
 
-    fun placeElements(target: RelativeLayout) {
+    open fun placeElements(target: RelativeLayout) {
         val prefs = target.context.defaultSharedPreferences
         val showQp = prefs.getBoolean("pref_show_qp", false)
         val alwaysShowTop = prefs.getBoolean("pref_always_show_top_bar", false)
@@ -538,7 +538,7 @@ class Osc {
         showBasedOnState()
     }
 
-    private fun toggleTopControls() {
+    protected fun toggleTopControls() {
         topVisible = !topVisible
         // Note that this is done separate from the showBasedOnState mode
         // Perhaps some refactoring is due
@@ -553,7 +553,7 @@ class Osc {
      * - mouse-mode visibility
      * - actual mouse cursor visibility
      */
-    fun showBasedOnState() {
+    protected open fun showBasedOnState() {
         // If keyboard or mouse-mode or both, then hide everything
         if (keyboardVisible || mouseVisible) {
             setVisibility(OscVisibility.NULL.v)
@@ -602,7 +602,7 @@ class Osc {
     /**
      * Hide/show stuff based on visibility state
      */
-    private fun setVisibility(newState: Int) {
+    protected open fun setVisibility(newState: Int) {
         if (visibilityState == newState)
             return
 
