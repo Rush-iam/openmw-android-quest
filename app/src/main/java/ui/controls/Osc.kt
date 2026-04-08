@@ -395,7 +395,7 @@ open class Osc {
     private var osk = Osk()
     var keyboardVisible = false //< Mode where only keyboard is visible
     var mouseVisible = false //< Mode where only mouse-switch icon is visible
-    private var topVisible = true //< The controls located at the top hidden behind the hamburger toggle
+    protected var topVisible = true //< The controls located at the top hidden behind the hamburger toggle
     protected var visibilityState = 0
     private val btnMouse = OscCustomButton("mouse", "mouse.png", OscVisibility.NULL,
         R.drawable.mouse, TOP_BAR_SPACING * 7, 0) { toggleMouse() }
