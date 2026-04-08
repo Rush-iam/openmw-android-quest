@@ -152,17 +152,6 @@ open class GameActivity : SDLActivity() {
         get() = SDLActivity.mLayout as RelativeLayout
 
     override fun loadLibraries() {
-        prefs = PreferenceManager.getDefaultSharedPreferences(this)
-        val physicsFPS = prefs!!.getString("pref_physicsFPS2", "")
-        if (!physicsFPS!!.isEmpty()) {
-            try {
-                Os.setenv("OPENMW_PHYSICS_FPS", physicsFPS, true)
-            } catch (e: ErrnoException) {
-                Log.e("OpenMW", "Failed setting environment variables.")
-                e.printStackTrace()
-            }
-        }
-
         System.loadLibrary("c++_shared")
         System.loadLibrary("openal")
         System.loadLibrary("SDL2")
@@ -175,6 +164,7 @@ open class GameActivity : SDLActivity() {
             e.printStackTrace()
         }
 
+        prefs = PreferenceManager.getDefaultSharedPreferences(this)
         val forceGLSL330 = prefs!!.getBoolean("pref_use_spirv_shader_conv", false)
         if (forceGLSL330 == true) Os.setenv("OPENMW_FORCEGLSL330", "1", true)
 

@@ -74,16 +74,6 @@
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/category_performance">
-        <ListPreference
-            android:key="pref_physicsFPS2"
-            android:title="@string/pref_physicsFPS2"
-            android:dialogTitle="@string/pref_physicsFPS2"
-            android:entries="@array/pref_physicsFPS2_entries"
-            android:entryValues="@array/pref_physicsFPS2_entries"
-            android:defaultValue="@string/pref_physicsFPS2_default"
-            android:summary="%s"
-            />
-
         <CheckBoxPreference
             android:key="pref_loadKTX"
             android:title="Load KTX Textures"
