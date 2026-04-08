@@ -1,6 +1,6 @@
 buildscript {
-    val kotlinVersion by extra("1.9.22")
-    val spatialsdkVersion by extra("0.10.1")
+    val kotlinVersion by extra("2.0.21")
+    val spatialsdkVersion by extra("0.11.1")
 
     dependencies {
         classpath("com.android.tools.build:gradle:8.7.3")
@@ -12,10 +12,10 @@ buildscript {
 }
 
 plugins {
-    id("com.android.application") version "8.1.0" apply false
-    id("org.jetbrains.kotlin.android") version "2.0.20" apply false
-    id("com.meta.spatial.plugin") version "0.10.1" apply true
-    id("com.google.devtools.ksp") version "2.0.20-1.0.24" apply true
+    id("com.android.application") version "8.1.4" apply false
+    id("org.jetbrains.kotlin.android") version "2.0.21" apply false
+    id("com.meta.spatial.plugin") version "0.11.1" apply true
+    id("com.google.devtools.ksp") version "2.0.21-1.0.28" apply true
 
     idea
 }

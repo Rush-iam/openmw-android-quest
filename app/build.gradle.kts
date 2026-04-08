@@ -112,7 +112,7 @@ android {
     }
 }
 
-val metaSpatialSdkVersion = "0.10.1"
+val metaSpatialSdkVersion = "0.11.1"
 dependencies {
     implementation("androidx.appcompat:appcompat:1.3.1")
     implementation("androidx.preference:preference:1.1.1")
@@ -137,7 +137,7 @@ dependencies {
     implementation ("com.meta.spatial:meta-spatial-sdk-vr:${metaSpatialSdkVersion}")
     implementation("com.meta.spatial:meta-spatial-sdk-toolkit:$metaSpatialSdkVersion")
     implementation("com.meta.spatial:meta-spatial-sdk-castinputforward:$metaSpatialSdkVersion")
-    ksp("com.meta.spatial.plugin:com.meta.spatial.plugin.gradle.plugin:$metaSpatialSdkVersion")
+    ksp("com.meta.spatial.plugin:com.meta.spatial.plugin.gradle.plugin:0.10.1")
 }
 
 val projectDir = layout.projectDirectory
