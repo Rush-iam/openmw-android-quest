@@ -56,12 +56,9 @@ class ImmersiveActivity : AppSystemActivity() {
         }
         scene.setReferenceSpace(ReferenceSpace.LOCAL)
         systemManager.findSystem<LocomotionSystem>().enableLocomotion(false)
-
-        val touchControllersToGamepadSystem = TouchControllersToGamepadSystem()
-        systemManager.registerSystem(touchControllersToGamepadSystem)
-        val isdkSystem = systemManager.findSystem<IsdkSystem>()
-        // TODO: why off-panel events do not work?
-        isdkSystem.registerObserver(touchControllersToGamepadSystem::translateThumbsticks)
+        systemManager.registerSystem(
+            TouchControllersToGamepadSystem(systemManager.findSystem<IsdkSystem>())
+        )
 
         val cursorSystem = systemManager.findSystem<IsdkDefaultCursorSystem>()
         // TODO: hide pointers & lasers if SDL cursor is hidden
@@ -74,7 +71,7 @@ class ImmersiveActivity : AppSystemActivity() {
                 classIdCreator = { ImmersiveMainActivity::class.java },
                 settingsCreator = {
                     MediaPanelSettings(
-                        shape = CylinderShapeOptions(20.0f, 4.0f, 3.0f),
+                        shape = CylinderShapeOptions(20.0f),
                         display = PixelDisplayOptions(2400, 1800),
                         input = PanelInputOptions(ButtonBits.ButtonTriggerL or ButtonBits.ButtonTriggerR),
                     )

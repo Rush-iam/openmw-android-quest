@@ -2,8 +2,10 @@ package com.queststoredb.openmw_quest
 
 import android.view.KeyEvent
 import android.view.MotionEvent
+import com.meta.spatial.core.Hand
 import com.meta.spatial.core.Query
 import com.meta.spatial.core.SystemBase
+import com.meta.spatial.isdk.IsdkSystem
 import com.meta.spatial.runtime.ButtonBits
 import com.meta.spatial.runtime.PointerEvent
 import com.meta.spatial.runtime.SemanticType
@@ -12,13 +14,11 @@ import org.libsdl.app.SDLActivity
 import org.libsdl.app.SDLControllerManager
 
 
-class TouchControllersToGamepadSystem : SystemBase() {
+class TouchControllersToGamepadSystem(val isdkSystem: IsdkSystem) : SystemBase() {
     companion object {
         var isEnabled = false
         private const val VIRTUAL_DEVICE_ID = 1384510559  // random number
         private const val SDL_MOUSE_BUTTON_LEFT_KEYCODE = 1
-        const val LEFT_HAND_POINTER_TYPE = 17
-        const val RIGHT_HAND_POINTER_TYPE = 18
         private val controllerQuery = Query.where { has(Controller.id) }
         private val trackedButtonMask = (
             ButtonBits.AllButtonClickMask
@@ -47,6 +47,11 @@ class TouchControllersToGamepadSystem : SystemBase() {
             )
         }
 
+    }
+
+    init {
+        // TODO: figure out a workaround for non-working off-panel pointer events
+        isdkSystem.registerObserver(::translateThumbsticks)
     }
 
     override fun execute() {
@@ -110,10 +115,10 @@ class TouchControllersToGamepadSystem : SystemBase() {
         }
     }
 
-    fun translateThumbsticks(event: PointerEvent) {
+    private fun translateThumbsticks(event: PointerEvent) {
         if (!isEnabled || event.semanticType != SemanticType.Scroll.id)
             return
-        val axis = if (event.pointerType == LEFT_HAND_POINTER_TYPE) 0 else 2
+        val axis = if (isdkSystem.getHandForPointerEvent(event) == Hand.LEFT) 0 else 2
         if (SDLActivity.isMouseShown() == 0) {
             SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis, event.scrollInfo.x)
             SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis + 1, -event.scrollInfo.y)
