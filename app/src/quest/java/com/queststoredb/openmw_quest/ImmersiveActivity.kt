@@ -94,7 +94,9 @@ class ImmersiveMainActivity: MainActivity() {
         // Override in-game defaults
         return super.getConfigDefaults(scaling) + mapOf(
             "viewing distance" to "7168.0",
-            "field of view" to "75.0",
+            "maximum light distance" to "4096.0",
+            "actors processing range" to "5376",
+            "field of view" to "80.0",
             "target framerate" to "72",
             // Journal font is too large at the default size 16
             "font size" to "14",
