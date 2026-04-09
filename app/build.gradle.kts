@@ -137,7 +137,6 @@ dependencies {
     implementation ("com.meta.spatial:meta-spatial-sdk-vr:${metaSpatialSdkVersion}")
     implementation("com.meta.spatial:meta-spatial-sdk-toolkit:$metaSpatialSdkVersion")
     implementation("com.meta.spatial:meta-spatial-sdk-castinputforward:$metaSpatialSdkVersion")
-    ksp("com.meta.spatial.plugin:com.meta.spatial.plugin.gradle.plugin:0.10.1")
 }
 
 val projectDir = layout.projectDirectory
