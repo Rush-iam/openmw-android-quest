@@ -127,11 +127,11 @@ class TouchControllersToGamepadSystem(
 
                 // A workaround mouse scroll for broken Right Thumbstick scroll
                 if (SDLActivity.isMouseShown() == 1) {
-                    if ((pressedButtons and (ButtonBits.ButtonThumbRU)) != 0)
+                    if ((pressedButtons and (ButtonBits.ButtonThumbLU or ButtonBits.ButtonThumbRU)) != 0)
                         SDLActivity.onNativeMouse(
                             0, MotionEvent.ACTION_SCROLL, 0.0f, 1.0f, false
                         )
-                    else if ((pressedButtons and (ButtonBits.ButtonThumbRD)) != 0)
+                    else if ((pressedButtons and (ButtonBits.ButtonThumbLD or ButtonBits.ButtonThumbRD)) != 0)
                         SDLActivity.onNativeMouse(
                             0, MotionEvent.ACTION_SCROLL, 0.0f, -1.0f, false
                         )
