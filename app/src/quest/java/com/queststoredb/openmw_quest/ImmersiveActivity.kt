@@ -4,7 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.preference.PreferenceManager
-import com.libopenmw.openmw.BuildConfig
 import com.meta.spatial.core.SpatialFeature
 import com.meta.spatial.runtime.ReferenceSpace
 import com.meta.spatial.toolkit.AppSystemActivity
@@ -12,7 +11,6 @@ import com.meta.spatial.toolkit.PanelRegistration
 import com.meta.spatial.vr.VRFeature
 import ui.activity.MainActivity
 import com.libopenmw.openmw.R
-import com.meta.spatial.castinputforward.CastInputForwardFeature
 import com.meta.spatial.core.Entity
 import com.meta.spatial.core.Pose
 import com.meta.spatial.core.Query
@@ -38,11 +36,7 @@ import ui.activity.GameActivity
 
 class ImmersiveActivity : AppSystemActivity() {
     override fun registerFeatures(): List<SpatialFeature> {
-        val features: MutableList<SpatialFeature> = mutableListOf(VRFeature(this))
-        if (BuildConfig.DEBUG) {
-            features.add(CastInputForwardFeature(this))
-        }
-        return features
+        return mutableListOf(VRFeature(this))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

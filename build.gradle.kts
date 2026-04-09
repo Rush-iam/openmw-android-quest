@@ -7,7 +7,6 @@ buildscript {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
         classpath("com.bugsnag:bugsnag-android-gradle-plugin:8.2.0")
         classpath("com.meta.spatial.plugin:com.meta.spatial.plugin.gradle.plugin:${spatialsdkVersion}")
-        classpath("com.meta.spatial:meta-spatial-sdk-castinputforward:${spatialsdkVersion}")
     }
 }
 
