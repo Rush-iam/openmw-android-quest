@@ -1,8 +1,8 @@
 package com.queststoredb.openmw_quest
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.preference.PreferenceManager
 import com.libopenmw.openmw.BuildConfig
 import com.meta.spatial.core.SpatialFeature
@@ -10,20 +10,25 @@ import com.meta.spatial.runtime.ReferenceSpace
 import com.meta.spatial.toolkit.AppSystemActivity
 import com.meta.spatial.toolkit.PanelRegistration
 import com.meta.spatial.vr.VRFeature
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import ui.activity.MainActivity
 import com.libopenmw.openmw.R
 import com.meta.spatial.castinputforward.CastInputForwardFeature
+import com.meta.spatial.core.Entity
+import com.meta.spatial.core.Pose
+import com.meta.spatial.core.Query
+import com.meta.spatial.core.Vector3
+import com.meta.spatial.isdk.IsdkCurvedPanel
 import com.meta.spatial.isdk.IsdkDefaultCursorSystem
 import com.meta.spatial.isdk.IsdkSystem
 import com.meta.spatial.runtime.ButtonBits
 import com.meta.spatial.toolkit.ActivityPanelRegistration
 import com.meta.spatial.toolkit.CylinderShapeOptions
 import com.meta.spatial.toolkit.MediaPanelSettings
+import com.meta.spatial.toolkit.Panel
 import com.meta.spatial.toolkit.PanelInputOptions
 import com.meta.spatial.toolkit.PixelDisplayOptions
+import com.meta.spatial.toolkit.Transform
+import com.meta.spatial.toolkit.createPanelEntity
 import com.meta.spatial.vr.LocomotionSystem
 import constants.Constants
 import kotlin.collections.mapOf
@@ -32,8 +37,6 @@ import ui.activity.GameActivity
 
 
 class ImmersiveActivity : AppSystemActivity() {
-    private val activityScope = CoroutineScope(Dispatchers.Main)
-
     override fun registerFeatures(): List<SpatialFeature> {
         val features: MutableList<SpatialFeature> = mutableListOf(VRFeature(this))
         if (BuildConfig.DEBUG) {
@@ -50,10 +53,9 @@ class ImmersiveActivity : AppSystemActivity() {
 
     override fun onSceneReady() {
         super.onSceneReady()
-        activityScope.launch {
-            glXFManager.inflateGLXF(Uri.parse("scenes/scene.glxf"), keyName = "scene")
-        }
         scene.setReferenceSpace(ReferenceSpace.LOCAL)
+        Entity.createPanelEntity(R.id.panel, Transform(Pose(Vector3(0f, -0.5f, -12f))))
+
         systemManager.findSystem<LocomotionSystem>().enableLocomotion(false)
         systemManager.registerSystem(
             TouchControllersToGamepadSystem(
@@ -70,7 +72,7 @@ class ImmersiveActivity : AppSystemActivity() {
                 classIdCreator = { ImmersiveMainActivity::class.java },
                 settingsCreator = {
                     MediaPanelSettings(
-                        shape = CylinderShapeOptions(20.0f),
+                        shape = CylinderShapeOptions(20f, 12f, 9f),
                         display = PixelDisplayOptions(2400, 1800),
                         input = PanelInputOptions(ButtonBits.ButtonTriggerL or ButtonBits.ButtonTriggerR),
                     )
