@@ -5,6 +5,7 @@ import android.view.MotionEvent
 import com.meta.spatial.core.Hand
 import com.meta.spatial.core.Query
 import com.meta.spatial.core.SystemBase
+import com.meta.spatial.isdk.IsdkDefaultCursorSystem
 import com.meta.spatial.isdk.IsdkSystem
 import com.meta.spatial.runtime.ButtonBits
 import com.meta.spatial.runtime.PointerEvent
@@ -14,7 +15,13 @@ import org.libsdl.app.SDLActivity
 import org.libsdl.app.SDLControllerManager
 
 
-class TouchControllersToGamepadSystem(val isdkSystem: IsdkSystem) : SystemBase() {
+class TouchControllersToGamepadSystem(
+    val isdkSystem: IsdkSystem, val cursorSystem: IsdkDefaultCursorSystem
+) : SystemBase() {
+    private var isCursorEnabled = true
+    private var shouldDisableCursorInput = false
+    private val defaultCursorLaserWidth = cursorSystem.laserConfigWidth
+
     companion object {
         var isEnabled = false
         private const val VIRTUAL_DEVICE_ID = 1384510559  // random number
@@ -50,18 +57,36 @@ class TouchControllersToGamepadSystem(val isdkSystem: IsdkSystem) : SystemBase()
     }
 
     init {
-        // TODO: figure out a workaround for non-working off-panel pointer events
         isdkSystem.registerObserver(::translateThumbsticks)
     }
 
     override fun execute() {
+        // Note: called every frame
+        if (!isEnabled)
+            return
         translateButtons()
+        setCursorAndLaserVisibility()
+    }
+
+    private fun setCursorAndLaserVisibility() {
+        // Hide controller pointers and lasers if mouse cursor is hidden
+        if (shouldDisableCursorInput) {
+            shouldDisableCursorInput = false
+            cursorSystem.enableInput(false)
+        }
+        if (isCursorEnabled && SDLActivity.isMouseShown() == 0) {
+            isCursorEnabled = false
+            cursorSystem.laserConfigWidth = 0.0f
+            // Defer input disabling by one frame to redraw the laser as 0-width first
+            shouldDisableCursorInput = true
+        } else if (!isCursorEnabled && SDLActivity.isMouseShown() == 1) {
+            isCursorEnabled = true
+            cursorSystem.enableInput(true)
+            cursorSystem.laserConfigWidth = defaultCursorLaserWidth
+        }
     }
 
     private fun translateButtons() {
-        if (!isEnabled)
-            return
-
         for (entity in controllerQuery.eval().filter { it.isLocal() }) {
             val controller = entity.getComponent<Controller>()
             if (controller.isActive) {
@@ -116,14 +141,15 @@ class TouchControllersToGamepadSystem(val isdkSystem: IsdkSystem) : SystemBase()
     }
 
     private fun translateThumbsticks(event: PointerEvent) {
+        // Note: called only if controller points the panel
+        // TODO: figure out a workaround for non-working off-panel pointer events
         if (!isEnabled || event.semanticType != SemanticType.Scroll.id)
             return
         val axis = if (isdkSystem.getHandForPointerEvent(event) == Hand.LEFT) 0 else 2
         if (SDLActivity.isMouseShown() == 0) {
             SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis, event.scrollInfo.x)
             SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis + 1, -event.scrollInfo.y)
-        }
-        else {
+        } else {
             // Disable Left Thumbstick cursor control because there is a controller pointer.
             // Disable Right Thumbstick scrolling: does not work correctly for an unknown reason.
             SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis, 0.0f)

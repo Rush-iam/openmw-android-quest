@@ -29,7 +29,6 @@ import constants.Constants
 import kotlin.collections.mapOf
 import permission.PermissionHelper
 import ui.activity.GameActivity
-import ui.controls.Osc
 
 
 class ImmersiveActivity : AppSystemActivity() {
@@ -57,11 +56,11 @@ class ImmersiveActivity : AppSystemActivity() {
         scene.setReferenceSpace(ReferenceSpace.LOCAL)
         systemManager.findSystem<LocomotionSystem>().enableLocomotion(false)
         systemManager.registerSystem(
-            TouchControllersToGamepadSystem(systemManager.findSystem<IsdkSystem>())
+            TouchControllersToGamepadSystem(
+                systemManager.findSystem<IsdkSystem>(),
+                systemManager.findSystem<IsdkDefaultCursorSystem>(),
+            )
         )
-
-        val cursorSystem = systemManager.findSystem<IsdkDefaultCursorSystem>()
-        // TODO: hide pointers & lasers if SDL cursor is hidden
     }
 
     override fun registerPanels(): List<PanelRegistration> {
