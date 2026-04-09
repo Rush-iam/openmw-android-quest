@@ -9,11 +9,14 @@ import com.meta.spatial.runtime.InputListener
 import com.meta.spatial.runtime.SceneObject
 import com.meta.spatial.toolkit.AvatarAttachment
 import org.libsdl.app.SDLActivity
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 
 class PanelPointerToMouseTranslator : InputListener {
     private var lastClickedHand = Hand.RIGHT
+    private var previousMouseX = 0f
+    private var previousMouseY = 0f
 
     companion object {
         var isEnabled = false
@@ -58,11 +61,21 @@ class PanelPointerToMouseTranslator : InputListener {
         )
             return
 
+        var newMouseX = hitInfo.textureCoordinate.x
+        var newMouseY = hitInfo.textureCoordinate.y
+        // Smooth out cursor jitter for more stable/readable tooltips
+        val deltaMouseX = abs(newMouseX - previousMouseX) / 0.02f
+        val deltaMouseY = abs(newMouseY - previousMouseY) / 0.02f
+        if (deltaMouseX < 1f && deltaMouseY < 1f) {
+            newMouseX = previousMouseX * (1f - deltaMouseX) + newMouseX * deltaMouseX
+            newMouseY = previousMouseY * (1f - deltaMouseY) + newMouseY * deltaMouseY
+        }
         val surface = SDLActivity.getSurface()
-        // TODO: filter cursor to make it smoother
         SDLActivity.sendRelativeMouseMotion(
-            (hitInfo.textureCoordinate.x * surface.width).roundToInt() - SDLActivity.getMouseX(),
-            (hitInfo.textureCoordinate.y * surface.height).roundToInt() - SDLActivity.getMouseY(),
+            (newMouseX * surface.width).roundToInt() - SDLActivity.getMouseX(),
+            (newMouseY * surface.height).roundToInt() - SDLActivity.getMouseY(),
         )
+        previousMouseX = newMouseX
+        previousMouseY = newMouseY
     }
 }
