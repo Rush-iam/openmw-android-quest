@@ -24,18 +24,15 @@
         <meta-data android:name="com.oculus.supportedDevices" android:value="quest3|quest3s" />
         <meta-data android:name="com.oculus.vr.focusaware" android:value="true" />
         <meta-data android:name="com.oculus.handtracking.version" android:value="V2.0" />
-        <!-- Trade GPU for CPU as the game is CPU-bounded on Quest headsets -->
-        <!-- TODO: yet not supported with the latest Spatial SDK 0.11 -->
+        <!-- Trade GPU for CPU as the game is CPU-bounded on Quest 3/3S -->
         <meta-data android:name="com.oculus.trade_cpu_for_gpu_amount" android:value="-1" />
         <uses-native-library android:name="libossdk.oculus.so" android:required="true" />
         <activity
             android:name="com.queststoredb.openmw_quest.ImmersiveMainActivity"
-            android:configChanges="keyboardHidden|orientation|screenSize"
             android:allowEmbedded="true">
         </activity>
         <activity
             android:name="com.queststoredb.openmw_quest.ImmersiveGameActivity"
-            android:configChanges="keyboardHidden|orientation|screenSize"
             android:allowEmbedded="true">
         </activity>
         <activity
@@ -43,7 +40,6 @@
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
             android:launchMode="singleTask"
             android:excludeFromRecents="false"
-            android:screenOrientation="landscape"
             android:configChanges="screenSize|screenLayout|orientation|keyboardHidden|keyboard|navigation|uiMode"
             android:exported="true">
             <intent-filter>

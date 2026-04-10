@@ -2,36 +2,30 @@ package com.queststoredb.openmw_quest
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
+import android.view.KeyEvent
 import androidx.preference.PreferenceManager
-import com.meta.spatial.core.SpatialFeature
-import com.meta.spatial.runtime.ReferenceSpace
-import com.meta.spatial.toolkit.AppSystemActivity
-import com.meta.spatial.toolkit.PanelRegistration
-import com.meta.spatial.vr.VRFeature
-import ui.activity.MainActivity
 import com.libopenmw.openmw.R
 import com.meta.spatial.core.Entity
 import com.meta.spatial.core.Pose
-import com.meta.spatial.core.Query
+import com.meta.spatial.core.SpatialFeature
 import com.meta.spatial.core.Vector3
-import com.meta.spatial.isdk.IsdkCurvedPanel
 import com.meta.spatial.isdk.IsdkDefaultCursorSystem
 import com.meta.spatial.isdk.IsdkSystem
-import com.meta.spatial.runtime.ButtonBits
+import com.meta.spatial.runtime.ReferenceSpace
 import com.meta.spatial.toolkit.ActivityPanelRegistration
+import com.meta.spatial.toolkit.AppSystemActivity
 import com.meta.spatial.toolkit.CylinderShapeOptions
 import com.meta.spatial.toolkit.MediaPanelSettings
-import com.meta.spatial.toolkit.Panel
-import com.meta.spatial.toolkit.PanelInputOptions
+import com.meta.spatial.toolkit.PanelRegistration
 import com.meta.spatial.toolkit.PixelDisplayOptions
 import com.meta.spatial.toolkit.Transform
 import com.meta.spatial.toolkit.createPanelEntity
 import com.meta.spatial.vr.LocomotionSystem
+import com.meta.spatial.vr.VRFeature
 import constants.Constants
-import kotlin.collections.mapOf
 import permission.PermissionHelper
 import ui.activity.GameActivity
+import ui.activity.MainActivity
 
 
 class ImmersiveActivity : AppSystemActivity() {
@@ -47,11 +41,11 @@ class ImmersiveActivity : AppSystemActivity() {
 
     override fun onSceneReady() {
         super.onSceneReady()
+        scene.setPreferredDisplayRate(72.0f)
         scene.setReferenceSpace(ReferenceSpace.LOCAL)
         Entity.createPanelEntity(R.id.panel, Transform(Pose(Vector3(0f, -0.5f, -12f))))
-
         systemManager.findSystem<LocomotionSystem>().enableLocomotion(false)
-        systemManager.registerSystem(
+        systemManager.registerEarlySystem(
             TouchControllersToGamepadSystem(
                 systemManager.findSystem<IsdkSystem>(),
                 systemManager.findSystem<IsdkDefaultCursorSystem>(),
@@ -68,11 +62,12 @@ class ImmersiveActivity : AppSystemActivity() {
                     MediaPanelSettings(
                         shape = CylinderShapeOptions(20f, 12f, 9f),
                         display = PixelDisplayOptions(2400, 1800),
-                        input = PanelInputOptions(ButtonBits.ButtonTriggerL or ButtonBits.ButtonTriggerR),
                     )
                 },
-                // TODO: replace with registerInteractableObserver
-                panelSetup = { panel, entity -> panel.addInputListener(PanelPointerToMouseTranslator()) }
+                // TODO: figure out how to regain focus after resuming from the Meta Menu
+                panelSetup = { panel, entity -> panel.addInputListener(
+                    PanelPointerToMouseTranslator(entity, systemManager.findSystem<IsdkSystem>())
+                ) }
             ),
         )
     }
@@ -165,6 +160,12 @@ class ImmersiveGameActivity : GameActivity() {
         super.onWindowFocusChanged(hasFocus)
         PanelPointerToMouseTranslator.isEnabled = hasFocus
         TouchControllersToGamepadSystem.isEnabled = hasFocus
+
+        if (!hasFocus && isMouseShown() == 0) {
+            // Pause the game on losing window focus
+            onNativeKeyDown(KeyEvent.KEYCODE_ESCAPE)
+            onNativeKeyUp(KeyEvent.KEYCODE_ESCAPE)
+        }
     }
 
     override fun onPause() {
