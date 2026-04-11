@@ -64,7 +64,6 @@ class ImmersiveActivity : AppSystemActivity() {
                         display = PixelDisplayOptions(2400, 1800),
                     )
                 },
-                // TODO: figure out how to regain focus after resuming from the Meta Menu
                 panelSetup = { panel, entity -> panel.addInputListener(
                     PanelPointerToMouseTranslator(entity, systemManager.findSystem<IsdkSystem>())
                 ) }
@@ -156,22 +155,21 @@ class ImmersiveGameActivity : GameActivity() {
         TouchControllersToGamepadSystem.initialize()
     }
 
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        PanelPointerToMouseTranslator.isEnabled = hasFocus
-        TouchControllersToGamepadSystem.isEnabled = hasFocus
-
-        if (!hasFocus && isMouseShown() == 0) {
-            // Pause the game on losing window focus
+    override fun onPause() {
+        super.onPause()
+        PanelPointerToMouseTranslator.isEnabled = false
+        TouchControllersToGamepadSystem.isEnabled = false
+        if (isMouseShown() == 0) {
+            // Pause the game
             onNativeKeyDown(KeyEvent.KEYCODE_ESCAPE)
             onNativeKeyUp(KeyEvent.KEYCODE_ESCAPE)
         }
     }
 
-    override fun onPause() {
-        super.onPause()
-        PanelPointerToMouseTranslator.isEnabled = false
-        TouchControllersToGamepadSystem.isEnabled = false
+    override fun onResume() {
+        super.onResume()
+        PanelPointerToMouseTranslator.isEnabled = true
+        TouchControllersToGamepadSystem.isEnabled = true
     }
 
     override fun showControls() {
