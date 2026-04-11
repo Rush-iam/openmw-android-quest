@@ -21,7 +21,7 @@ fun calculateVersion(vCode: Int): String {
 
 android {
     namespace = "com.libopenmw.openmw"
-    compileSdk = 30
+    compileSdk = 33
     ndkVersion = "27.3.13750724"
 
     compileOptions {
