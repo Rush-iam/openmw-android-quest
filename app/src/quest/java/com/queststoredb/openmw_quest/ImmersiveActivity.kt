@@ -37,10 +37,6 @@ class ImmersiveActivity : AppSystemActivity() {
         super.onCreate(savedInstanceState)
         // Permission requests by panel activities do not work
         PermissionHelper.getWriteExternalStoragePermission(this)
-    }
-
-    override fun onSceneReady() {
-        super.onSceneReady()
         scene.setPreferredDisplayRate(72.0f)
         scene.setReferenceSpace(ReferenceSpace.LOCAL)
         Entity.createPanelEntity(R.id.panel, Transform(Pose(Vector3(0f, -0.5f, -12f))))
