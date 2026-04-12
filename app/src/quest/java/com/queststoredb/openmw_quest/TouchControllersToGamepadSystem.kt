@@ -23,7 +23,6 @@ class TouchControllersToGamepadSystem(
     private val defaultCursorLaserWidth = cursorSystem.laserConfigWidth
 
     companion object {
-        var isEnabled = false
         private const val VIRTUAL_DEVICE_ID = 1384510559  // random number
         private const val SDL_MOUSE_BUTTON_LEFT_KEYCODE = 1
         private val controllerQuery = Query.where { has(Controller.id) }
@@ -62,7 +61,7 @@ class TouchControllersToGamepadSystem(
 
     override fun execute() {
         // Note: called every frame
-        if (!isEnabled)
+        if (!ImmersiveActivity.isGameRunning)
             return
         translateButtons()
         setCursorAndLaserVisibility()
@@ -117,13 +116,11 @@ class TouchControllersToGamepadSystem(
                 }
 
                 // Pass any trigger as the left mouse button
-                if (SDLActivity.isMouseShown() == 0) {
-                    if ((pressedButtons and anyTriggerMask) != 0)
-                        SDLActivity.sendMouseButton(1, SDL_MOUSE_BUTTON_LEFT_KEYCODE)
-                    else if ((releasedButtons and anyTriggerMask) != 0
-                        && (controller.buttonState and anyTriggerMask) == 0)
-                        SDLActivity.sendMouseButton(0, SDL_MOUSE_BUTTON_LEFT_KEYCODE)
-                }
+                if ((pressedButtons and anyTriggerMask) != 0)
+                    SDLActivity.sendMouseButton(1, SDL_MOUSE_BUTTON_LEFT_KEYCODE)
+                else if ((releasedButtons and anyTriggerMask) != 0
+                    && (controller.buttonState and anyTriggerMask) == 0)
+                    SDLActivity.sendMouseButton(0, SDL_MOUSE_BUTTON_LEFT_KEYCODE)
 
                 // A workaround mouse scroll for broken Right Thumbstick scroll
                 if (SDLActivity.isMouseShown() == 1) {
@@ -143,7 +140,8 @@ class TouchControllersToGamepadSystem(
     private fun translateThumbsticks(event: PointerEvent) {
         // Note: called only if controller points the panel
         // TODO: figure out a workaround for non-working off-panel pointer events
-        if (!isEnabled || event.semanticType != SemanticType.Scroll.id)
+        // TODO: figure why thumbstick values are 0 when trigger is held
+        if (!ImmersiveActivity.isGameRunning || event.semanticType != SemanticType.Scroll.id)
             return
         val axis = if (isdkSystem.getHandForPointerEvent(event) == Hand.LEFT) 0 else 2
         if (SDLActivity.isMouseShown() == 0) {

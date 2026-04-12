@@ -16,6 +16,7 @@ import com.meta.spatial.toolkit.ActivityPanelRegistration
 import com.meta.spatial.toolkit.AppSystemActivity
 import com.meta.spatial.toolkit.CylinderShapeOptions
 import com.meta.spatial.toolkit.MediaPanelSettings
+import com.meta.spatial.toolkit.PanelInputOptions
 import com.meta.spatial.toolkit.PanelRegistration
 import com.meta.spatial.toolkit.PixelDisplayOptions
 import com.meta.spatial.toolkit.Transform
@@ -29,6 +30,15 @@ import ui.activity.MainActivity
 
 
 class ImmersiveActivity : AppSystemActivity() {
+    companion object {
+        var isGameRunning = false
+        private const val REFRESH_RATE_HZ = 72.0f
+        private val PANEL_POSITION = Vector3(0f, -1f, -12f)
+        private const val PANEL_RADIUS = 20f
+        private const val PANEL_SCALE = 4f
+        private const val PANEL_RESOLUTION_WIDTH = 2400
+    }
+
     override fun registerFeatures(): List<SpatialFeature> {
         return mutableListOf(VRFeature(this))
     }
@@ -37,10 +47,10 @@ class ImmersiveActivity : AppSystemActivity() {
         super.onCreate(savedInstanceState)
         // Permission requests by panel activities do not work
         PermissionHelper.getWriteExternalStoragePermission(this)
-        scene.setPreferredDisplayRate(72.0f)
+        scene.setPreferredDisplayRate(REFRESH_RATE_HZ)
         scene.setReferenceSpace(ReferenceSpace.LOCAL)
-        Entity.createPanelEntity(R.id.panel, Transform(Pose(Vector3(0f, -0.5f, -12f))))
         systemManager.findSystem<LocomotionSystem>().enableLocomotion(false)
+        Entity.createPanelEntity(R.id.panel, Transform(Pose(PANEL_POSITION)))
         systemManager.registerEarlySystem(
             TouchControllersToGamepadSystem(
                 systemManager.findSystem<IsdkSystem>(),
@@ -56,12 +66,16 @@ class ImmersiveActivity : AppSystemActivity() {
                 classIdCreator = { ImmersiveMainActivity::class.java },
                 settingsCreator = {
                     MediaPanelSettings(
-                        shape = CylinderShapeOptions(20f, 12f, 9f),
-                        display = PixelDisplayOptions(2400, 1800),
+                        // 4:3 is the most optimal aspect ratio for the game
+                        shape = CylinderShapeOptions(PANEL_RADIUS, 4f * PANEL_SCALE, 3f * PANEL_SCALE),
+                        display = PixelDisplayOptions(PANEL_RESOLUTION_WIDTH, PANEL_RESOLUTION_WIDTH * 3 / 4),
+                        input = PanelInputOptions(0),
                     )
                 },
                 panelSetup = { panel, entity -> panel.addInputListener(
-                    PanelPointerToMouseTranslator(entity, systemManager.findSystem<IsdkSystem>())
+                    PanelPointerToMouseTranslator(
+                        entity, panel.display!!, systemManager.findSystem<IsdkSystem>()
+                    )
                 ) }
             ),
         )
@@ -153,8 +167,7 @@ class ImmersiveGameActivity : GameActivity() {
 
     override fun onPause() {
         super.onPause()
-        PanelPointerToMouseTranslator.isEnabled = false
-        TouchControllersToGamepadSystem.isEnabled = false
+        ImmersiveActivity.isGameRunning = false
         if (isMouseShown() == 0) {
             // Pause the game
             onNativeKeyDown(KeyEvent.KEYCODE_ESCAPE)
@@ -164,8 +177,7 @@ class ImmersiveGameActivity : GameActivity() {
 
     override fun onResume() {
         super.onResume()
-        PanelPointerToMouseTranslator.isEnabled = true
-        TouchControllersToGamepadSystem.isEnabled = true
+        ImmersiveActivity.isGameRunning = true
     }
 
     override fun showControls() {
