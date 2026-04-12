@@ -23,12 +23,23 @@ import kotlin.math.roundToInt
 class PanelPointerToMouseTranslator(
     panelEntity: Entity, val panelDisplay: PanelDisplay, val isdkSystem: IsdkSystem
 ) : InputListener {
-    private var lastClickedHand = Hand.RIGHT
+    private var activeHand = Hand.RIGHT
+    private var activeDownHand: Hand? = null
     private var previousMouseX = 0f
     private var previousMouseY = 0f
 
     companion object {
         private val leftHandInputSources = listOf("left_controller", "left_hand")
+        private val anyTriggerOrGripButtonMask = (
+            ButtonBits.ButtonTriggerL
+                or ButtonBits.ButtonTriggerR
+                or ButtonBits.ButtonSqueezeL
+                or ButtonBits.ButtonSqueezeR
+                // Hand-tracking "click" buttons are A and X
+                or ButtonBits.ButtonA
+                or ButtonBits.ButtonX
+            )
+        private const val SDL_MOUSE_BUTTON_LEFT_KEYCODE = 1
     }
 
     init {
@@ -46,18 +57,19 @@ class PanelPointerToMouseTranslator(
         if (
             ImmersiveActivity.isGameRunning &&
             SDLActivity.isMouseShown() == 1
-            && (changed and buttonState and ButtonBits.AllButtonClickMask != 0)
+            && (changed and buttonState and anyTriggerOrGripButtonMask != 0)
         ) {
-            // Switch the active hand for pointer move events
-            // TODO: fix cursor jumps when switching hand causing shifts
+            // Switch the active hand for mouse move events
             val sourceType = sourceOfInput.getComponent<AvatarAttachment>().type
-            lastClickedHand = if (sourceType in leftHandInputSources) Hand.LEFT else Hand.RIGHT
+            val newHand = if (sourceType in leftHandInputSources) Hand.LEFT else Hand.RIGHT
+            if (activeHand != newHand && (activeDownHand == null || activeDownHand == newHand))
+                activeHand = newHand
         }
         return false
     }
 
     private fun translatePointerToMouse(event: PointerEvent) {
-        if (isdkSystem.getHandForPointerEvent(event) != lastClickedHand)
+        if (isdkSystem.getHandForPointerEvent(event) != activeHand)
             return
 
         var newMouseX = event.hitInfo.textureCoordinate.x
@@ -87,10 +99,9 @@ class PanelPointerToMouseTranslator(
                 newMouseX = previousMouseX * (1f - deltaMouseX) + newMouseX * deltaMouseX
                 newMouseY = previousMouseY * (1f - deltaMouseY) + newMouseY * deltaMouseY
             }
-            val surface = SDLActivity.getSurface()
             SDLActivity.sendRelativeMouseMotion(
-                (newMouseX * surface.width).roundToInt() - SDLActivity.getMouseX(),
-                (newMouseY * surface.height).roundToInt() - SDLActivity.getMouseY(),
+                (newMouseX * panelDisplay.widthInPx).roundToInt() - SDLActivity.getMouseX(),
+                (newMouseY * panelDisplay.heightInPx).roundToInt() - SDLActivity.getMouseY(),
             )
         }
 
@@ -99,14 +110,21 @@ class PanelPointerToMouseTranslator(
     }
 
     override fun onClickDown(receiver: SceneObject, hitInfo: HitInfo, sourceOfInput: Entity) {
-        handleOnClick(hitInfo, MotionEvent.ACTION_DOWN)
+        handleOnClick(hitInfo, sourceOfInput, MotionEvent.ACTION_DOWN)
     }
 
     override fun onClick(receiver: SceneObject, hitInfo: HitInfo, sourceOfInput: Entity)  {
-        handleOnClick(hitInfo, MotionEvent.ACTION_UP)
+        handleOnClick(hitInfo, sourceOfInput, MotionEvent.ACTION_UP)
     }
 
-    private fun handleOnClick(hitInfo: HitInfo, motionEvent: Int) {
+    private fun handleOnClick(hitInfo: HitInfo, sourceOfInput: Entity, motionEvent: Int) {
+        val sourceType = sourceOfInput.getComponent<AvatarAttachment>().type
+        val hand = if (sourceType in leftHandInputSources) Hand.LEFT else Hand.RIGHT
+        if (activeDownHand != null && hand != activeDownHand)
+            // Skip other hand clicks while another hand holds a button
+            return
+        activeDownHand = if (motionEvent == MotionEvent.ACTION_DOWN) hand else null
+
         val eventTime = SystemClock.uptimeMillis()
         val x = hitInfo.textureCoordinate.x * panelDisplay.widthInPx
         val y = hitInfo.textureCoordinate.y * panelDisplay.heightInPx
@@ -116,5 +134,18 @@ class PanelPointerToMouseTranslator(
         }
         panelDisplay.dispatchEvent(clickEvent, isGenericEvent = false)
         clickEvent.recycle()
+
+        if (ImmersiveActivity.isGameRunning) {
+            if (motionEvent == MotionEvent.ACTION_DOWN) {
+                if (SDLActivity.isMouseShown() == 1)
+                    // Move cursor first, to avoid click jumps when switching hands
+                    SDLActivity.sendRelativeMouseMotion(
+                        x.roundToInt() - SDLActivity.getMouseX(),
+                        y.roundToInt() - SDLActivity.getMouseY(),
+                    )
+                SDLActivity.sendMouseButton(1, SDL_MOUSE_BUTTON_LEFT_KEYCODE)
+            } else
+                SDLActivity.sendMouseButton(0, SDL_MOUSE_BUTTON_LEFT_KEYCODE)
+        }
     }
 }

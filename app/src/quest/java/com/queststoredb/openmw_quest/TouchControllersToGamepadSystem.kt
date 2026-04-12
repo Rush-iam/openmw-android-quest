@@ -24,7 +24,6 @@ class TouchControllersToGamepadSystem(
 
     companion object {
         private const val VIRTUAL_DEVICE_ID = 1384510559  // random number
-        private const val SDL_MOUSE_BUTTON_LEFT_KEYCODE = 1
         private val controllerQuery = Query.where { has(Controller.id) }
         private val trackedButtonMask = (
             ButtonBits.AllButtonClickMask
@@ -33,7 +32,6 @@ class TouchControllersToGamepadSystem(
                 or ButtonBits.LeftThumbMotionMask
                 or ButtonBits.RightThumbMotionMask
             )
-        private val anyTriggerMask = ButtonBits.ButtonTriggerL or ButtonBits.ButtonTriggerR
         private val TOUCH_CONTROLLER_TO_GAMEPAD_BUTTON_PAIRS = listOf(
             ButtonBits.ButtonMenu to KeyEvent.KEYCODE_BUTTON_START,
             ButtonBits.ButtonA to KeyEvent.KEYCODE_BUTTON_A,
@@ -63,8 +61,8 @@ class TouchControllersToGamepadSystem(
         // Note: called every frame
         if (!ImmersiveActivity.isGameRunning)
             return
-        translateButtons()
         setCursorAndLaserVisibility()
+        translateButtons()
     }
 
     private fun setCursorAndLaserVisibility() {
@@ -115,25 +113,28 @@ class TouchControllersToGamepadSystem(
                     }
                 }
 
-                // Pass any trigger as the left mouse button
-                if ((pressedButtons and anyTriggerMask) != 0)
-                    SDLActivity.sendMouseButton(1, SDL_MOUSE_BUTTON_LEFT_KEYCODE)
-                else if ((releasedButtons and anyTriggerMask) != 0
-                    && (controller.buttonState and anyTriggerMask) == 0)
-                    SDLActivity.sendMouseButton(0, SDL_MOUSE_BUTTON_LEFT_KEYCODE)
-
                 // A workaround mouse scroll for broken Right Thumbstick scroll
                 if (SDLActivity.isMouseShown() == 1) {
-                    if ((pressedButtons and (ButtonBits.ButtonThumbLU or ButtonBits.ButtonThumbRU)) != 0)
+                    if ((pressedButtons
+                            and (ButtonBits.ButtonThumbLU or ButtonBits.ButtonThumbRU)) != 0)
                         SDLActivity.onNativeMouse(
                             0, MotionEvent.ACTION_SCROLL, 0.0f, 1.0f, false
                         )
-                    else if ((pressedButtons and (ButtonBits.ButtonThumbLD or ButtonBits.ButtonThumbRD)) != 0)
+                    else if ((pressedButtons
+                            and (ButtonBits.ButtonThumbLD or ButtonBits.ButtonThumbRD)) != 0)
                         SDLActivity.onNativeMouse(
                             0, MotionEvent.ACTION_SCROLL, 0.0f, -1.0f, false
                         )
                 }
             }
+        }
+    }
+
+    private fun sendGamepadKeyEvent(action: Int, keyCode: Int) {
+        if (action == KeyEvent.ACTION_DOWN) {
+            SDLControllerManager.onNativePadDown(VIRTUAL_DEVICE_ID, keyCode)
+        } else {
+            SDLControllerManager.onNativePadUp(VIRTUAL_DEVICE_ID, keyCode)
         }
     }
 
@@ -152,14 +153,6 @@ class TouchControllersToGamepadSystem(
             // Disable Right Thumbstick scrolling: does not work correctly for an unknown reason.
             SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis, 0.0f)
             SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis + 1, 0.0f)
-        }
-    }
-
-    private fun sendGamepadKeyEvent(action: Int, keyCode: Int) {
-        if (action == KeyEvent.ACTION_DOWN) {
-            SDLControllerManager.onNativePadDown(VIRTUAL_DEVICE_ID, keyCode)
-        } else {
-            SDLControllerManager.onNativePadUp(VIRTUAL_DEVICE_ID, keyCode)
         }
     }
 }
