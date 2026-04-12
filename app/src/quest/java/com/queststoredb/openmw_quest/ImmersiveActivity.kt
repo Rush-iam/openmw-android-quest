@@ -35,7 +35,7 @@ class ImmersiveActivity : AppSystemActivity() {
         private const val REFRESH_RATE_HZ = 72.0f
         private val PANEL_POSITION = Vector3(0f, -1f, -12f)
         private const val PANEL_RADIUS = 20f
-        private const val PANEL_SCALE = 4f
+        private const val PANEL_SCALE = 3f
         private const val PANEL_RESOLUTION_WIDTH = 2400
     }
 
