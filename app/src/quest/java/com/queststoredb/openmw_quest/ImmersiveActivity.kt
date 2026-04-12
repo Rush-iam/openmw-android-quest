@@ -35,8 +35,10 @@ class ImmersiveActivity : AppSystemActivity() {
         private const val REFRESH_RATE_HZ = 72.0f
         private val PANEL_POSITION = Vector3(0f, -1f, -12f)
         private const val PANEL_RADIUS = 20f
-        private const val PANEL_SCALE = 3f
+        private const val PANEL_WIDTH = 12f
         private const val PANEL_RESOLUTION_WIDTH = 2400
+        // 4:3 is the native aspect ratio of the game
+        private const val PANEL_ASPECT_RATIO = 3/4
     }
 
     override fun registerFeatures(): List<SpatialFeature> {
@@ -66,9 +68,12 @@ class ImmersiveActivity : AppSystemActivity() {
                 classIdCreator = { ImmersiveMainActivity::class.java },
                 settingsCreator = {
                     MediaPanelSettings(
-                        // 4:3 is the most optimal aspect ratio for the game
-                        shape = CylinderShapeOptions(PANEL_RADIUS, 4f * PANEL_SCALE, 3f * PANEL_SCALE),
-                        display = PixelDisplayOptions(PANEL_RESOLUTION_WIDTH, PANEL_RESOLUTION_WIDTH * 3 / 4),
+                        shape = CylinderShapeOptions(
+                            PANEL_RADIUS, PANEL_WIDTH, PANEL_WIDTH * PANEL_ASPECT_RATIO
+                        ),
+                        display = PixelDisplayOptions(
+                            PANEL_RESOLUTION_WIDTH, PANEL_RESOLUTION_WIDTH * PANEL_ASPECT_RATIO
+                        ),
                         input = PanelInputOptions(0),
                     )
                 },
