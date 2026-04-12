@@ -112,6 +112,13 @@ android {
     }
 }
 
+bugsnag {
+    variantFilter {
+        // This disables Bugsnag tasks for EVERY build variant
+        enabled = false
+    }
+}
+
 val metaSpatialSdkVersion = "0.11.1"
 dependencies {
     implementation("androidx.appcompat:appcompat:1.3.1")
