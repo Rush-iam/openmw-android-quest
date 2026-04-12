@@ -2,43 +2,77 @@ package com.queststoredb.openmw_quest
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import androidx.preference.PreferenceManager
 import com.libopenmw.openmw.R
 import com.meta.spatial.core.Entity
 import com.meta.spatial.core.Pose
+import com.meta.spatial.core.Query
 import com.meta.spatial.core.SpatialFeature
 import com.meta.spatial.core.Vector3
+import com.meta.spatial.isdk.IsdkCurvedPanel
 import com.meta.spatial.isdk.IsdkDefaultCursorSystem
 import com.meta.spatial.isdk.IsdkSystem
+import com.meta.spatial.runtime.PanelSceneObject
 import com.meta.spatial.runtime.ReferenceSpace
 import com.meta.spatial.toolkit.ActivityPanelRegistration
 import com.meta.spatial.toolkit.AppSystemActivity
 import com.meta.spatial.toolkit.CylinderShapeOptions
 import com.meta.spatial.toolkit.MediaPanelSettings
+import com.meta.spatial.toolkit.Panel
 import com.meta.spatial.toolkit.PanelInputOptions
 import com.meta.spatial.toolkit.PanelRegistration
 import com.meta.spatial.toolkit.PixelDisplayOptions
+import com.meta.spatial.toolkit.SceneObjectSystem
+import com.meta.spatial.toolkit.SpatialActivityManager
 import com.meta.spatial.toolkit.Transform
 import com.meta.spatial.toolkit.createPanelEntity
 import com.meta.spatial.vr.LocomotionSystem
 import com.meta.spatial.vr.VRFeature
+import com.queststoredb.openmw_quest.ImmersiveActivity.Companion.calculatePanelFieldOfView
 import constants.Constants
 import permission.PermissionHelper
 import ui.activity.GameActivity
 import ui.activity.MainActivity
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.roundToInt
+import kotlin.math.sin
 
 
 class ImmersiveActivity : AppSystemActivity() {
     companion object {
         var isGameRunning = false
-        private const val REFRESH_RATE_HZ = 72.0f
+        const val REFRESH_RATE_HZ = 72.0f
         private val PANEL_POSITION = Vector3(0f, -1f, -12f)
         private const val PANEL_RADIUS = 20f
         private const val PANEL_WIDTH = 12f
         private const val PANEL_RESOLUTION_WIDTH = 2400
         // 4:3 is the native aspect ratio of the game
-        private const val PANEL_ASPECT_RATIO = 3/4
+        private const val PANEL_ASPECT_RATIO = 3/4f
+
+        fun calculatePanelFieldOfView(): Float {
+            val panelEntity = Query.where { has(Panel.id) }.eval().first {
+                it.getComponent<Panel>().panelRegistrationId == R.id.panel
+            }
+            var panelRadius = 0f
+            SpatialActivityManager.getAppSystemActivity().systemManager.findSystem<SceneObjectSystem>()
+                .getSceneObject(panelEntity)!!.thenAccept { sceneObject ->
+                    panelRadius = (sceneObject as PanelSceneObject)
+                        .panelShapeConfig!!.radiusForCylinderOrSphere
+                }
+            val panelFovFromOrigin = panelEntity.getComponent<IsdkCurvedPanel>().fieldOfView
+            val panelOffset = panelEntity.getComponent<Transform>().transform.t.z
+
+            val halfPanelFov = Math.toRadians(panelFovFromOrigin / 2.0)
+            val x = panelRadius * sin(halfPanelFov)
+            val y = panelRadius * cos(halfPanelFov)
+            val actualFov = Math.toDegrees(2.0 * atan2(abs(x), y + panelOffset)).toFloat()
+            Log.d("ImmersiveActivity", "calculated panel FoV: $actualFov")
+            return actualFov
+        }
     }
 
     override fun registerFeatures(): List<SpatialFeature> {
@@ -72,7 +106,8 @@ class ImmersiveActivity : AppSystemActivity() {
                             PANEL_RADIUS, PANEL_WIDTH, PANEL_WIDTH * PANEL_ASPECT_RATIO
                         ),
                         display = PixelDisplayOptions(
-                            PANEL_RESOLUTION_WIDTH, PANEL_RESOLUTION_WIDTH * PANEL_ASPECT_RATIO
+                            PANEL_RESOLUTION_WIDTH,
+                            (PANEL_RESOLUTION_WIDTH * PANEL_ASPECT_RATIO).roundToInt()
                         ),
                         input = PanelInputOptions(0),
                     )
@@ -100,8 +135,8 @@ class ImmersiveMainActivity: MainActivity() {
             "viewing distance" to "7168.0",
             "maximum light distance" to "4096.0",
             "actors processing range" to "5376",
-            "field of view" to "80.0",
-            "target framerate" to "72",
+            "field of view" to calculatePanelFieldOfView().toString(),
+            "target framerate" to ImmersiveActivity.REFRESH_RATE_HZ.toInt().toString(),
             // Journal font is too large at the default size 16
             "font size" to "14",
             "match sunlight to sun" to "true",
