@@ -30,7 +30,6 @@ import com.meta.spatial.toolkit.Transform
 import com.meta.spatial.toolkit.createPanelEntity
 import com.meta.spatial.vr.LocomotionSystem
 import com.meta.spatial.vr.VRFeature
-import com.queststoredb.openmw_quest.ImmersiveActivity.Companion.calculatePanelFieldOfView
 import constants.Constants
 import permission.PermissionHelper
 import ui.activity.GameActivity
@@ -45,7 +44,7 @@ import kotlin.math.sin
 class ImmersiveActivity : AppSystemActivity() {
     companion object {
         var isGameRunning = false
-        const val REFRESH_RATE_HZ = 72.0f
+        const val REFRESH_RATE_HZ = 72
         private val PANEL_POSITION = Vector3(0f, -1f, -12f)
         private const val PANEL_RADIUS = 20f
         private const val PANEL_WIDTH = 12f
@@ -70,7 +69,7 @@ class ImmersiveActivity : AppSystemActivity() {
             val x = panelRadius * sin(halfPanelFov)
             val y = panelRadius * cos(halfPanelFov)
             val actualFov = Math.toDegrees(2.0 * atan2(abs(x), y + panelOffset)).toFloat()
-            Log.d("ImmersiveActivity", "calculated panel FoV: $actualFov")
+            Log.d(this::class.simpleName, "calculated panel FoV: $actualFov")
             return actualFov
         }
     }
@@ -83,7 +82,7 @@ class ImmersiveActivity : AppSystemActivity() {
         super.onCreate(savedInstanceState)
         // Permission requests by panel activities do not work
         PermissionHelper.getWriteExternalStoragePermission(this)
-        scene.setPreferredDisplayRate(REFRESH_RATE_HZ)
+        scene.setPreferredDisplayRate(REFRESH_RATE_HZ.toFloat())
         scene.setReferenceSpace(ReferenceSpace.LOCAL)
         systemManager.findSystem<LocomotionSystem>().enableLocomotion(false)
         Entity.createPanelEntity(R.id.panel, Transform(Pose(PANEL_POSITION)))
@@ -91,6 +90,7 @@ class ImmersiveActivity : AppSystemActivity() {
             TouchControllersToGamepadSystem(
                 systemManager.findSystem<IsdkSystem>(),
                 systemManager.findSystem<IsdkDefaultCursorSystem>(),
+                PANEL_RESOLUTION_WIDTH,
             )
         )
     }
@@ -135,8 +135,8 @@ class ImmersiveMainActivity: MainActivity() {
             "viewing distance" to "7168.0",
             "maximum light distance" to "4096.0",
             "actors processing range" to "5376",
-            "field of view" to calculatePanelFieldOfView().toString(),
-            "target framerate" to ImmersiveActivity.REFRESH_RATE_HZ.toInt().toString(),
+            "field of view" to ImmersiveActivity.calculatePanelFieldOfView().toString(),
+            "target framerate" to ImmersiveActivity.REFRESH_RATE_HZ.toString(),
             // Journal font is too large at the default size 16
             "font size" to "14",
             "match sunlight to sun" to "true",
@@ -151,11 +151,11 @@ class ImmersiveMainActivity: MainActivity() {
             "stats h" to "0.44",
             "spells x" to "0.675",
             "spells y" to "0.44",
-            "spells w" to "0.32",
+            "spells w" to "0.325",
             "spells h" to "0.56",
             "map x" to "0.675",
             "map y" to "0.0",
-            "map w" to "0.32",
+            "map w" to "0.325",
             "map h" to "0.44",
             "inventory x" to "0",
             "inventory y" to "0.44",
@@ -200,11 +200,6 @@ class ImmersiveMainActivity: MainActivity() {
 }
 
 class ImmersiveGameActivity : GameActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        TouchControllersToGamepadSystem.initialize()
-    }
-
     override fun onPause() {
         super.onPause()
         ImmersiveActivity.isGameRunning = false

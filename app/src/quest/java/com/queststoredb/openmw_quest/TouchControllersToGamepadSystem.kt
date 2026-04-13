@@ -1,29 +1,45 @@
 package com.queststoredb.openmw_quest
 
+import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.MotionEvent
 import com.meta.spatial.core.Hand
+import com.meta.spatial.core.Pose
+import com.meta.spatial.core.Quaternion
 import com.meta.spatial.core.Query
 import com.meta.spatial.core.SystemBase
+import com.meta.spatial.core.Vector3
 import com.meta.spatial.isdk.IsdkDefaultCursorSystem
 import com.meta.spatial.isdk.IsdkSystem
 import com.meta.spatial.runtime.ButtonBits
 import com.meta.spatial.runtime.PointerEvent
 import com.meta.spatial.runtime.SemanticType
+import com.meta.spatial.toolkit.AvatarBody
 import com.meta.spatial.toolkit.Controller
+import com.meta.spatial.toolkit.ControllerType
+import com.meta.spatial.toolkit.Transform
+import com.queststoredb.openmw_quest.utils.smoothMotionJitter
 import org.libsdl.app.SDLActivity
 import org.libsdl.app.SDLControllerManager
+import kotlin.math.pow
+import kotlin.math.roundToInt
 
 
 class TouchControllersToGamepadSystem(
-    val isdkSystem: IsdkSystem, val cursorSystem: IsdkDefaultCursorSystem
+    val isdkSystem: IsdkSystem, val cursorSystem: IsdkDefaultCursorSystem, val screenWidth: Int
 ) : SystemBase() {
+    private var isVirtualGamepadInitialized = false
     private var isCursorEnabled = true
     private var shouldDisableCursorInput = false
     private val defaultCursorLaserWidth = cursorSystem.laserConfigWidth
+    private var previousControllerPose = Pose()
+    private var rightThumbstickTouchStartTime: Long? = null
 
     companion object {
         private const val VIRTUAL_DEVICE_ID = 1384510559  // random number
+        private const val CONTROLLER_MOTION_SENSITIVITY = 5f
+        private const val CONTROLLER_MOTION_START_DELAY_MS = 50
+        private val controllerMotionActivator = ButtonBits.ButtonThumbRTouch
         private val controllerQuery = Query.where { has(Controller.id) }
         private val trackedButtonMask = (
             ButtonBits.AllButtonClickMask
@@ -40,29 +56,37 @@ class TouchControllersToGamepadSystem(
             ButtonBits.ButtonY to KeyEvent.KEYCODE_BUTTON_Y,
             ButtonBits.ButtonThumbLClick to KeyEvent.KEYCODE_BUTTON_THUMBL,
             ButtonBits.ButtonThumbRClick to KeyEvent.KEYCODE_BUTTON_THUMBR,
+            ButtonBits.ButtonThumbRU to KeyEvent.KEYCODE_DPAD_UP,
+            ButtonBits.ButtonThumbRD to KeyEvent.KEYCODE_DPAD_DOWN,
             // Note: SDLJoystickHandler_API19 does not support passing L2 and R2 events
             ButtonBits.ButtonSqueezeL to KeyEvent.KEYCODE_BUTTON_L1,
             ButtonBits.ButtonSqueezeR to KeyEvent.KEYCODE_BUTTON_R1,
         )
-
-        fun initialize() {
-            SDLControllerManager.nativeAddJoystick(
-                VIRTUAL_DEVICE_ID, "Touch Controllers", "Quest", 0, 0, false, -1, 4, 0b1111, 0, 0
-            )
-        }
-
     }
 
     init {
         isdkSystem.registerObserver(::translateThumbsticks)
     }
 
+    fun initializeVirtualGamepad() {
+        if (!isVirtualGamepadInitialized) {
+            SDLControllerManager.nativeAddJoystick(
+                VIRTUAL_DEVICE_ID, "Touch Controllers", "Quest", 0, 0, false, -1, 4, 0b1111, 0, 0
+            )
+            isVirtualGamepadInitialized = true
+        }
+    }
+
     override fun execute() {
         // Note: called every frame
         if (!ImmersiveActivity.isGameRunning)
             return
+        if (!isVirtualGamepadInitialized)
+            initializeVirtualGamepad()
+
         setCursorAndLaserVisibility()
         translateButtons()
+        translateControllerMotion()
     }
 
     private fun setCursorAndLaserVisibility() {
@@ -86,42 +110,38 @@ class TouchControllersToGamepadSystem(
     private fun translateButtons() {
         for (entity in controllerQuery.eval().filter { it.isLocal() }) {
             val controller = entity.getComponent<Controller>()
-            if (controller.isActive) {
+            if (controller.isActive && controller.type == ControllerType.CONTROLLER) {
                 val changedButtons = controller.changedButtons and trackedButtonMask
                 if (changedButtons == 0)
                     continue
-                var pressedButtons = changedButtons and controller.buttonState
-                val releasedButtons = changedButtons and controller.buttonState.inv()
 
                 // Spatial SDK emits ThumbClick when pushing a thumbstick to sides:
                 // cancel it to avoid side effects.
-                if ((pressedButtons and ButtonBits.ButtonThumbLClick) != 0
-                    && (controller.buttonState and ButtonBits.LeftThumbMotionMask) != 0) {
+                var pressedButtons = changedButtons and controller.buttonState
+                if (controller.isPressed(ButtonBits.ButtonThumbLClick)
+                    && controller.isDown(ButtonBits.LeftThumbMotionMask)) {
                     pressedButtons = pressedButtons and ButtonBits.ButtonThumbLClick.inv()
                 }
-                if ((pressedButtons and ButtonBits.ButtonThumbRClick) != 0
-                    && (controller.buttonState and ButtonBits.RightThumbMotionMask) != 0) {
+                if (controller.isPressed(ButtonBits.ButtonThumbRClick)
+                    && controller.isDown(ButtonBits.RightThumbMotionMask)) {
                     pressedButtons = pressedButtons and ButtonBits.ButtonThumbRClick.inv()
                 }
-
                 // Translate generic gamepad buttons
                 for ((buttonBit, keyCode) in TOUCH_CONTROLLER_TO_GAMEPAD_BUTTON_PAIRS) {
                     if ((pressedButtons and buttonBit) != 0) {
                         sendGamepadKeyEvent(KeyEvent.ACTION_DOWN, keyCode)
-                    } else if ((releasedButtons and buttonBit) != 0) {
+                    } else if (controller.isReleased(buttonBit)) {
                         sendGamepadKeyEvent(KeyEvent.ACTION_UP, keyCode)
                     }
                 }
 
                 // A workaround mouse scroll for broken Right Thumbstick scroll
                 if (SDLActivity.isMouseShown() == 1) {
-                    if ((pressedButtons
-                            and (ButtonBits.ButtonThumbLU or ButtonBits.ButtonThumbRU)) != 0)
+                    if (controller.isPressed(ButtonBits.ButtonThumbLU or ButtonBits.ButtonThumbRU))
                         SDLActivity.onNativeMouse(
                             0, MotionEvent.ACTION_SCROLL, 0.0f, 1.0f, false
                         )
-                    else if ((pressedButtons
-                            and (ButtonBits.ButtonThumbLD or ButtonBits.ButtonThumbRD)) != 0)
+                    else if (controller.isPressed(ButtonBits.ButtonThumbLD or ButtonBits.ButtonThumbRD))
                         SDLActivity.onNativeMouse(
                             0, MotionEvent.ACTION_SCROLL, 0.0f, -1.0f, false
                         )
@@ -144,7 +164,14 @@ class TouchControllersToGamepadSystem(
         // TODO: figure why thumbstick values are 0 when trigger is held
         if (!ImmersiveActivity.isGameRunning || event.semanticType != SemanticType.Scroll.id)
             return
-        val axis = if (isdkSystem.getHandForPointerEvent(event) == Hand.LEFT) 0 else 2
+        if (!isVirtualGamepadInitialized)
+            initializeVirtualGamepad()
+        val hand = isdkSystem.getHandForPointerEvent(event)
+        if (hand == Hand.RIGHT)
+            // Ignore the Right Thumbstick: the camera is controlled by the controller motion
+            return
+
+        val axis = if (hand == Hand.LEFT) 0 else 2
         if (SDLActivity.isMouseShown() == 0) {
             SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis, event.scrollInfo.x)
             SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis + 1, -event.scrollInfo.y)
@@ -154,5 +181,41 @@ class TouchControllersToGamepadSystem(
             SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis, 0.0f)
             SDLControllerManager.onNativeJoy(VIRTUAL_DEVICE_ID, axis + 1, 0.0f)
         }
+    }
+
+    private fun translateControllerMotion() {
+        // Control the camera using controller motion if a finger is touching the right thumbstick
+        val playerRightHand = Query.where { has(AvatarBody.id) }.eval().first {
+            it.isLocal() && it.getComponent<AvatarBody>().isPlayerControlled
+        }.getComponent<AvatarBody>().rightHand
+        val controller = playerRightHand.tryGetComponent<Controller>() ?: return
+        val controllerPose = playerRightHand.getComponent<Transform>().transform
+        if (controller.isActive) {
+            if (controller.isPressed(controllerMotionActivator)) {
+                // Wait before activating tracking, as it starts annoyingly too early
+                rightThumbstickTouchStartTime = SystemClock.uptimeMillis()
+            } else if (controller.isReleased(controllerMotionActivator)) {
+                rightThumbstickTouchStartTime = null
+            } else if (controller.isDown(controllerMotionActivator)
+                    && SystemClock.uptimeMillis() - rightThumbstickTouchStartTime!!
+                    > CONTROLLER_MOTION_START_DELAY_MS) {
+                val previousControllerPoseWithoutRoll = Quaternion.lookRotation(
+                    previousControllerPose.q * Vector3.Forward, Vector3.Up
+                )
+                val deltaWorld = controllerPose.t - previousControllerPose.t
+                val delta = previousControllerPoseWithoutRoll.inverse() * deltaWorld
+                if (SDLActivity.isMouseShown() == 0) {
+                    var (deltaX, deltaY) = smoothMotionJitter(0f, 0f, delta.x, delta.y, 0.0002f)
+                    // Accelerate horizontal motion
+                    deltaX *= 1.5f.pow(1 + deltaX)
+                    // Normalize to the screen pixel density based on the resolution width
+                    SDLActivity.sendRelativeMouseMotion(
+                        (screenWidth * deltaX * CONTROLLER_MOTION_SENSITIVITY).roundToInt(),
+                        -(screenWidth * deltaY * CONTROLLER_MOTION_SENSITIVITY).roundToInt()
+                    )
+                }
+            }
+        }
+        previousControllerPose = controllerPose
     }
 }

@@ -14,8 +14,8 @@ import com.meta.spatial.runtime.PointerEvent
 import com.meta.spatial.runtime.SceneObject
 import com.meta.spatial.runtime.SemanticType
 import com.meta.spatial.toolkit.AvatarAttachment
+import com.queststoredb.openmw_quest.utils.smoothMotionJitter
 import org.libsdl.app.SDLActivity
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 
@@ -93,12 +93,11 @@ class PanelPointerToMouseTranslator(
         } else if (ImmersiveActivity.isGameRunning && SDLActivity.isMouseShown() == 1) {
             // Dispatch a game mouse move event
             // Smooth out cursor jitter for more stable/readable tooltips
-            val deltaMouseX = abs(newMouseX - previousMouseX) / 0.02f
-            val deltaMouseY = abs(newMouseY - previousMouseY) / 0.02f
-            if (deltaMouseX < 1f && deltaMouseY < 1f) {
-                newMouseX = previousMouseX * (1f - deltaMouseX) + newMouseX * deltaMouseX
-                newMouseY = previousMouseY * (1f - deltaMouseY) + newMouseY * deltaMouseY
-            }
+            val (smoothMouseX, smoothMouseY) = smoothMotionJitter(
+                previousMouseX, previousMouseY, newMouseX, newMouseY, 0.02f
+            )
+            newMouseX = smoothMouseX
+            newMouseY = smoothMouseY
             SDLActivity.sendRelativeMouseMotion(
                 (newMouseX * panelDisplay.widthInPx).roundToInt() - SDLActivity.getMouseX(),
                 (newMouseY * panelDisplay.heightInPx).roundToInt() - SDLActivity.getMouseY(),
