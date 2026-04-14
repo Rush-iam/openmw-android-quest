@@ -20,7 +20,7 @@ import kotlin.math.roundToInt
 
 
 /* The listener works only with the panel display events */
-class PanelPointerToMouseTranslator(
+class PanelPointerToMouseListener(
     panelEntity: Entity, val panelDisplay: PanelDisplay, val isdkSystem: IsdkSystem
 ) : InputListener {
     private var activeHand = Hand.RIGHT

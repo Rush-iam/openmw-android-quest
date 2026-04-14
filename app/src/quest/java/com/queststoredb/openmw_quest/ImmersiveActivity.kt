@@ -113,7 +113,7 @@ class ImmersiveActivity : AppSystemActivity() {
                     )
                 },
                 panelSetup = { panel, entity -> panel.addInputListener(
-                    PanelPointerToMouseTranslator(
+                    PanelPointerToMouseListener(
                         entity, panel.display!!, systemManager.findSystem<IsdkSystem>()
                     )
                 ) }
