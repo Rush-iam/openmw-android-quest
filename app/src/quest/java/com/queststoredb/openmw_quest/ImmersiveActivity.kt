@@ -137,9 +137,13 @@ class ImmersiveMainActivity: MainActivity() {
             "actors processing range" to "5376",
             "field of view" to ImmersiveActivity.calculatePanelFieldOfView().toString(),
             "target framerate" to ImmersiveActivity.REFRESH_RATE_HZ.toString(),
+            "framerate limit" to ImmersiveActivity.REFRESH_RATE_HZ.toString(),
             // Journal font is too large at the default size 16
             "font size" to "14",
             "match sunlight to sun" to "true",
+            // Lowest sensitivity of 0.2 increases camera control precision
+            "camera sensitivity" to "0.2",
+            //TODO: joystick bindings, enable toggle sneak script
 
             "settings x" to "0.13",
             "settings y" to "0.13",
