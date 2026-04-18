@@ -33,13 +33,15 @@ class TouchControllersToGamepadSystem(
     private var shouldDisableCursorInput = false
     private val defaultCursorLaserWidth = cursorSystem.laserConfigWidth
     private var previousControllerPose = Pose()
-    private var rightThumbstickTouchStartTime: Long? = null
+    private var controllerMotionActivateTime: Long? = null
+    private val controllerMotionActivator = ButtonBits.ButtonThumbRTouch
+    private val snapTurnEnable = false
+    private val snapTurnSensitivity = 0.5f // depends on mouse sensitivity
 
     companion object {
         private const val VIRTUAL_DEVICE_ID = 1384510559  // random number
-        private const val CONTROLLER_MOTION_SENSITIVITY = 5f
+        private const val CONTROLLER_MOTION_SENSITIVITY = 4f // depends on mouse sensitivity
         private const val CONTROLLER_MOTION_START_DELAY_MS = 50
-        private val controllerMotionActivator = ButtonBits.ButtonThumbRTouch
         private val controllerQuery = Query.where { has(Controller.id) }
         private val trackedButtonMask = (
             ButtonBits.AllButtonClickMask
@@ -57,7 +59,9 @@ class TouchControllersToGamepadSystem(
             ButtonBits.ButtonThumbLClick to KeyEvent.KEYCODE_BUTTON_THUMBL,
             ButtonBits.ButtonThumbRClick to KeyEvent.KEYCODE_BUTTON_THUMBR,
             ButtonBits.ButtonThumbRU to KeyEvent.KEYCODE_DPAD_UP,
+            ButtonBits.ButtonThumbRR to KeyEvent.KEYCODE_DPAD_RIGHT,
             ButtonBits.ButtonThumbRD to KeyEvent.KEYCODE_DPAD_DOWN,
+            ButtonBits.ButtonThumbRL to KeyEvent.KEYCODE_DPAD_LEFT,
             // Note: SDLJoystickHandler_API19 does not support passing L2 and R2 events
             ButtonBits.ButtonSqueezeL to KeyEvent.KEYCODE_BUTTON_L1,
             ButtonBits.ButtonSqueezeR to KeyEvent.KEYCODE_BUTTON_R1,
@@ -146,6 +150,18 @@ class TouchControllersToGamepadSystem(
                             0, MotionEvent.ACTION_SCROLL, 0.0f, -1.0f, false
                         )
                 }
+
+                // Right stick snap turn
+                if (
+                    snapTurnEnable
+                    && SDLActivity.isMouseShown() == 0
+                    && controller.isPressed(ButtonBits.ButtonThumbRL or ButtonBits.ButtonThumbRR)
+                ) {
+                    val direction = if (controller.isPressed(ButtonBits.ButtonThumbRR)) 1 else -1
+                    SDLActivity.sendRelativeMouseMotion(
+                        (direction * screenWidth * snapTurnSensitivity).roundToInt(), 0
+                    )
+                }
             }
         }
     }
@@ -190,30 +206,32 @@ class TouchControllersToGamepadSystem(
         }.getComponent<AvatarBody>().rightHand
         val controller = playerRightHand.tryGetComponent<Controller>() ?: return
         val controllerPose = playerRightHand.getComponent<Transform>().transform
-        if (controller.isActive) {
+        if (controller.isActive && SDLActivity.isMouseShown() == 0) {
             if (controller.isPressed(controllerMotionActivator)) {
                 // Wait before activating tracking, as it starts annoyingly too early
-                rightThumbstickTouchStartTime = SystemClock.uptimeMillis()
+                controllerMotionActivateTime = (
+                    SystemClock.uptimeMillis() + CONTROLLER_MOTION_START_DELAY_MS
+                )
             } else if (controller.isReleased(controllerMotionActivator)) {
-                rightThumbstickTouchStartTime = null
-            } else if (controller.isDown(controllerMotionActivator)
-                    && SystemClock.uptimeMillis() - rightThumbstickTouchStartTime!!
-                    > CONTROLLER_MOTION_START_DELAY_MS) {
+                controllerMotionActivateTime = null
+            } else if (
+                controllerMotionActivateTime != null
+                && controller.isDown(controllerMotionActivator)
+                && SystemClock.uptimeMillis() > controllerMotionActivateTime!!
+            ) {
                 val previousControllerPoseWithoutRoll = Quaternion.lookRotation(
                     previousControllerPose.q * Vector3.Forward, Vector3.Up
                 )
                 val deltaWorld = controllerPose.t - previousControllerPose.t
                 val delta = previousControllerPoseWithoutRoll.inverse() * deltaWorld
-                if (SDLActivity.isMouseShown() == 0) {
-                    var (deltaX, deltaY) = smoothMotionJitter(0f, 0f, delta.x, delta.y, 0.0002f)
-                    // Accelerate horizontal motion
-                    deltaX *= 1.5f.pow(1 + deltaX)
-                    // Normalize to the screen pixel density based on the resolution width
-                    SDLActivity.sendRelativeMouseMotion(
-                        (screenWidth * deltaX * CONTROLLER_MOTION_SENSITIVITY).roundToInt(),
-                        -(screenWidth * deltaY * CONTROLLER_MOTION_SENSITIVITY).roundToInt()
-                    )
-                }
+                var (deltaX, deltaY) = smoothMotionJitter(0f, 0f, delta.x, delta.y, 0.0002f)
+                // Accelerate horizontal motion
+                deltaX *= 1.5f.pow(1 + deltaX)
+                // Normalize to the screen pixel density based on the resolution width
+                SDLActivity.sendRelativeMouseMotion(
+                    (screenWidth * deltaX * CONTROLLER_MOTION_SENSITIVITY).roundToInt(),
+                    -(screenWidth * deltaY * CONTROLLER_MOTION_SENSITIVITY).roundToInt()
+                )
             }
         }
         previousControllerPose = controllerPose
