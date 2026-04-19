@@ -16,9 +16,11 @@ import com.meta.spatial.isdk.IsdkDefaultCursorSystem
 import com.meta.spatial.isdk.IsdkSystem
 import com.meta.spatial.runtime.PanelSceneObject
 import com.meta.spatial.runtime.ReferenceSpace
+import com.meta.spatial.runtime.StereoMode
 import com.meta.spatial.toolkit.ActivityPanelRegistration
 import com.meta.spatial.toolkit.AppSystemActivity
 import com.meta.spatial.toolkit.CylinderShapeOptions
+import com.meta.spatial.toolkit.MediaPanelRenderOptions
 import com.meta.spatial.toolkit.MediaPanelSettings
 import com.meta.spatial.toolkit.Panel
 import com.meta.spatial.toolkit.PanelInputOptions
@@ -34,6 +36,7 @@ import constants.Constants
 import permission.PermissionHelper
 import ui.activity.GameActivity
 import ui.activity.MainActivity
+import java.lang.Math.toRadians
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -42,15 +45,18 @@ import kotlin.math.sin
 
 
 class ImmersiveActivity : AppSystemActivity() {
+
     companion object {
         var isGameRunning = false
+        var stereoEnabled = false
         const val REFRESH_RATE_HZ = 72
-        private val PANEL_POSITION = Vector3(0f, -1f, -12f)
+        private val PANEL_POSITION = Vector3(0f, -0.5f, -12f)
         private const val PANEL_RADIUS = 20f
         private const val PANEL_WIDTH = 12f
         private const val PANEL_RESOLUTION_WIDTH = 2400
         // 4:3 is the native aspect ratio of the game
-        private const val PANEL_ASPECT_RATIO = 3/4f
+        const val PANEL_ASPECT_RATIO = 3f/4f
+        const val STEREO_IPD_MM = 63
 
         fun calculatePanelFieldOfView(): Float {
             val panelEntity = Query.where { has(Panel.id) }.eval().first {
@@ -96,6 +102,7 @@ class ImmersiveActivity : AppSystemActivity() {
     }
 
     override fun registerPanels(): List<PanelRegistration> {
+        val stereoMode = if (stereoEnabled) StereoMode.LeftRight else StereoMode.None
         return listOf(
             ActivityPanelRegistration(
                 R.id.panel,
@@ -109,6 +116,7 @@ class ImmersiveActivity : AppSystemActivity() {
                             PANEL_RESOLUTION_WIDTH,
                             (PANEL_RESOLUTION_WIDTH * PANEL_ASPECT_RATIO).roundToInt()
                         ),
+                        rendering = MediaPanelRenderOptions(stereoMode = stereoMode),
                         input = PanelInputOptions(0),
                     )
                 },
@@ -131,11 +139,15 @@ class ImmersiveMainActivity: MainActivity() {
 
     override fun getConfigDefaults(scaling: Float): Map<String, String> {
         // Override in-game defaults
+        val fovDegrees = ImmersiveActivity.calculatePanelFieldOfView()
+        val stereoEyeHorizontalFov = toRadians(fovDegrees.toDouble()) / 2
+        val stereoEyeVerticalFov = stereoEyeHorizontalFov * ImmersiveActivity.PANEL_ASPECT_RATIO
+        val stereoEyeOffset = ImmersiveActivity.STEREO_IPD_MM * 0.07 / 2 // 1 meter = 70 MW units
         return super.getConfigDefaults(scaling) + mapOf(
             "viewing distance" to "7168.0",
             "maximum light distance" to "4096.0",
             "actors processing range" to "5376",
-            "field of view" to ImmersiveActivity.calculatePanelFieldOfView().toString(),
+            "field of view" to fovDegrees.toString(),
             "target framerate" to ImmersiveActivity.REFRESH_RATE_HZ.toString(),
             "framerate limit" to ImmersiveActivity.REFRESH_RATE_HZ.toString(),
             // Journal font is too large at the default size 16
@@ -143,7 +155,24 @@ class ImmersiveMainActivity: MainActivity() {
             "match sunlight to sun" to "true",
             // Lowest sensitivity of 0.2 increases camera control precision
             "camera sensitivity" to "0.2",
-            //TODO: joystick bindings, enable toggle sneak script
+
+            // Stereo mode is unplayable due to incorrectly rendered UI,
+            // see https://gitlab.com/OpenMW/openmw/-/work_items/5606#note_2695192012
+            // TODO: try making it more playable by switching the stereo mode off if mouse is active
+            "stereo enabled" to ImmersiveActivity.stereoEnabled.toString(),
+            // TODO: enable multiview once the PR is merged: https://github.com/OpenMW/osg/pull/29
+            "left eye offset x" to (-stereoEyeOffset).toString(),
+            "right eye offset x" to stereoEyeOffset.toString(),
+            "left eye fov left" to (-stereoEyeHorizontalFov).toString(),
+            "left eye fov right" to stereoEyeHorizontalFov.toString(),
+            "right eye fov left" to (-stereoEyeHorizontalFov).toString(),
+            "right eye fov right" to stereoEyeHorizontalFov.toString(),
+            "left eye fov up" to stereoEyeVerticalFov.toString(),
+            "left eye fov down" to (-stereoEyeVerticalFov).toString(),
+            "right eye fov up" to stereoEyeVerticalFov.toString(),
+            "right eye fov down" to (-stereoEyeVerticalFov).toString(),
+
+            //TODO: joystick bindings (bundle input_v3.xml), patch toggle sneak script default
 
             "settings x" to "0.13",
             "settings y" to "0.13",
